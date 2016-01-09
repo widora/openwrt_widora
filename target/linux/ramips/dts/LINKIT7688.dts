@@ -7,7 +7,7 @@
 	model = "MediaTek LinkIt Smart 7688";
 
 	chosen {
-		bootargs = "console=ttyS2,57600";
+		bootargs = "console=ttyS0,115200";
 	};
 
 	memory@0 {
@@ -123,7 +123,7 @@
 
 	sdhci@10130000 {
 		status = "okay";
-		mediatek,cd-high;
+		mediatek,cd-low;
 //		mediatek,cd-poll;
 	};
 
