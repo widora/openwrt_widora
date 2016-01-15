@@ -1,6 +1,6 @@
 --- a/drivers/phy/Kconfig
 +++ b/drivers/phy/Kconfig
-@@ -239,6 +239,11 @@ config PHY_XGENE
+@@ -239,6 +239,11 @@
  	help
  	  This option enables support for APM X-Gene SoC multi-purpose PHY.
  
@@ -14,14 +14,14 @@
  	depends on RESET_CONTROLLER
 --- a/drivers/phy/Makefile
 +++ b/drivers/phy/Makefile
-@@ -31,3 +31,4 @@ obj-$(CONFIG_PHY_ST_SPEAR1340_MIPHY)	+=
+@@ -31,3 +31,4 @@
  obj-$(CONFIG_PHY_XGENE)			+= phy-xgene.o
  obj-$(CONFIG_PHY_STIH407_USB)		+= phy-stih407-usb.o
  obj-$(CONFIG_PHY_STIH41X_USB)		+= phy-stih41x-usb.o
 +obj-$(CONFIG_PHY_RALINK_USB)		+= phy-ralink-usb.o
 --- /dev/null
 +++ b/drivers/phy/phy-ralink-usb.c
-@@ -0,0 +1,175 @@
+@@ -0,0 +1,366 @@
 +/*
 + * Allwinner ralink USB phy driver
 + *
@@ -54,6 +54,16 @@
 +
 +#include <asm/mach-ralink/ralink_regs.h>
 +
++#define PHYS_TO_K1(physaddr)		KSEG1ADDR(physaddr)
++#define sysRegRead(phys)		(*(volatile unsigned int *)PHYS_TO_K1(phys))
++#define sysRegWrite(phys, val)		((*(volatile unsigned int *)PHYS_TO_K1(phys)) = (val))
++
++#define RALINK_SYSCTL_BASE		0xB0000000
++#define RALINK_USB_DEV_BASE		0xB0120000
++
++#define RALINK_UHST_RST			(1<<22)
++#define RALINK_UDEV_RST			(1<<25)
++
 +#define RT_SYSC_REG_SYSCFG1		0x014
 +#define RT_SYSC_REG_CLKCFG1		0x030
 +#define RT_SYSC_REG_USB_PHY_CFG		0x05c
@@ -70,19 +80,147 @@
 +#define USB_PHY_UTMI_8B60M		BIT(1)
 +#define UDEV_WAKEUP			BIT(0)
 +
-+static atomic_t usb_pwr_ref = ATOMIC_INIT(0);
++#define SYSCFG1_REG		(RALINK_SYSCTL_BASE + 0x14)
++#define RALINK_UHST_MODE	(1UL<<10)
++
++#define CLKCFG1_REG		(RALINK_SYSCTL_BASE + 0x30)
++#define RSTCTRL_REG		(RALINK_SYSCTL_BASE + 0x34)
++
++#define RALINK_UPHY0_CLK_EN		(1<<25)
++#define RALINK_UPHY1_CLK_EN		(1<<22)
++
++static atomic_t rt3xxx_power_instance = ATOMIC_INIT(0);
++static atomic_t uphy_init_instance = ATOMIC_INIT(0);
 +static struct reset_control *rstdev;
 +static struct reset_control *rsthost;
 +static u32 phy_clk;
 +static struct phy *rt_phy;
 +
-+static void usb_phy_enable(int state)
++#define REG_SIFSLV_FM_FEG_FMCR0		(ADDR_SIFSLV_FM_FEG_BASE+0x00)
++#define REG_SIFSLV_FM_FEG_FMCR1		(ADDR_SIFSLV_FM_FEG_BASE+0x04)
++#define REG_SIFSLV_FM_FEG_FMCR2		(ADDR_SIFSLV_FM_FEG_BASE+0x08)
++#define REG_SIFSLV_FM_FEG_FMMONR0	(ADDR_SIFSLV_FM_FEG_BASE+0x0C)
++#define REG_SIFSLV_FM_FEG_FMMONR1	(ADDR_SIFSLV_FM_FEG_BASE+0x10)
++
++/* SIFSLV_FM_FEG_FMCR0 */
++#define RG_LOCKTH			(0xf<<28)
++#define RG_MONCLK_SEL			(0x3<<26)
++#define RG_FM_MODE			(0x1<<25)
++#define RG_FREQDET_EN			(0x1<<24)
++#define RG_CYCLECNT			(0x00ffffff)
++
++/* SIFSLV_FM_FEG_FMMONR1 */
++#define RG_MONCLK_SEL_3			(0x1<<9)
++#define RG_FRCK_EN			(0x1<<8)
++#define USBPLL_LOCK			(0x1<<1)
++#define USB_FM_VLD			(0x1<<0)
++
++#define OFS_U2_PHY_AC0			0x00
++#define OFS_U2_PHY_AC1			0x04
++#define OFS_U2_PHY_AC2			0x08
++#define OFS_U2_PHY_ACR0			0x10
++#define OFS_U2_PHY_ACR1			0x14
++#define OFS_U2_PHY_ACR2			0x18
++#define OFS_U2_PHY_ACR3			0x1C
++#define OFS_U2_PHY_ACR4			0x20
++#define OFS_U2_PHY_AMON0		0x24
++#define OFS_U2_PHY_DCR0			0x60
++#define OFS_U2_PHY_DCR1			0x64
++#define OFS_U2_PHY_DTM0			0x68
++#define OFS_U2_PHY_DTM1			0x6C
++
++/* U2_PHY_ACR0 */
++#define RG_USB20_ICUSB_EN		(0x1<<24)
++#define RG_USB20_HSTX_SRCAL_EN		(0x1<<23)
++#define RG_USB20_HSTX_SRCTRL		(0x7<<16)
++#define RG_USB20_LS_CR			(0x7<<12)
++#define RG_USB20_FS_CR			(0x7<<8)
++#define RG_USB20_LS_SR			(0x7<<4)
++#define RG_USB20_FS_SR			(0x7<<0)
++
++#define ADDR_SIFSLV_FM_FEG_BASE		(RALINK_USB_DEV_BASE+0xf00)
++#define ADDR_U2_PHY_P0_BASE		(RALINK_USB_DEV_BASE+0x800)
++#define U2_SR_COEFF			32
++
++static void
++u2_slew_rate_calibration(int port_id, u32 u2_phy_reg_base)
 +{
-+	if (state)
-+		rt_sysc_m32(0, phy_clk, RT_SYSC_REG_CLKCFG1);
-+	else
-+		rt_sysc_m32(phy_clk, 0, RT_SYSC_REG_CLKCFG1);
-+	mdelay(100);
++	int i;
++	u32 reg_val;
++	u32 u4FmOut = 0;
++
++	// => RG_USB20_HSTX_SRCAL_EN = 1
++	// enable HS TX SR calibration
++	reg_val = sysRegRead(u2_phy_reg_base + OFS_U2_PHY_ACR0);
++	reg_val |= RG_USB20_HSTX_SRCAL_EN;
++	sysRegWrite(u2_phy_reg_base + OFS_U2_PHY_ACR0, reg_val);
++	msleep(1);
++
++	// => RG_FRCK_EN = 1
++	// Enable free run clock
++	reg_val = sysRegRead(REG_SIFSLV_FM_FEG_FMMONR1);
++	reg_val |= RG_FRCK_EN;
++	sysRegWrite(REG_SIFSLV_FM_FEG_FMMONR1, reg_val);
++
++	// MT6290 HS signal quality patch
++	// => RG_CYCLECNT = 400
++	// Setting cyclecnt = 400
++	reg_val = sysRegRead(REG_SIFSLV_FM_FEG_FMCR0);
++	reg_val &= ~RG_CYCLECNT;
++	reg_val |= 0x400;
++	sysRegWrite(REG_SIFSLV_FM_FEG_FMCR0, reg_val);
++
++	// => RG_FREQDET_EN = 1
++	// Enable frequency meter
++	reg_val = sysRegRead(REG_SIFSLV_FM_FEG_FMCR0);
++	reg_val |= RG_FREQDET_EN;
++	sysRegWrite(REG_SIFSLV_FM_FEG_FMCR0, reg_val);
++
++	// wait for FM detection done, set 10ms timeout
++	for (i = 0; i < 10; i++) {
++		// => u4FmOut = USB_FM_OUT
++		// read FM_OUT
++		u4FmOut = sysRegRead(REG_SIFSLV_FM_FEG_FMMONR0);
++		
++		// check if FM detection done
++		if (u4FmOut != 0)
++			break;
++		
++		msleep(1);
++	}
++
++	// => RG_FREQDET_EN = 0
++	// disable frequency meter
++	reg_val = sysRegRead(REG_SIFSLV_FM_FEG_FMCR0);
++	reg_val &= ~RG_FREQDET_EN;
++	sysRegWrite(REG_SIFSLV_FM_FEG_FMCR0, reg_val);
++
++	// => RG_FRCK_EN = 0
++	// disable free run clock
++	reg_val = sysRegRead(REG_SIFSLV_FM_FEG_FMMONR1);
++	reg_val &= ~RG_FRCK_EN;
++	sysRegWrite(REG_SIFSLV_FM_FEG_FMMONR1, reg_val);
++
++	// => RG_USB20_HSTX_SRCAL_EN = 0
++	// disable HS TX SR calibration
++	reg_val = sysRegRead(u2_phy_reg_base + OFS_U2_PHY_ACR0);
++	reg_val &= ~RG_USB20_HSTX_SRCAL_EN;
++	sysRegWrite(u2_phy_reg_base + OFS_U2_PHY_ACR0, reg_val);
++	msleep(1);
++
++	// => RG_USB20_HSTX_SRCTRL
++	reg_val = sysRegRead(u2_phy_reg_base + OFS_U2_PHY_ACR0);
++	reg_val &= ~RG_USB20_HSTX_SRCTRL;
++	if (u4FmOut != 0) {
++		// set reg = (1024/FM_OUT) * 25 * 0.028 (round to the nearest digits)
++		u32 u4Tmp = (((1024 * 25 * U2_SR_COEFF) / u4FmOut) + 500) / 1000;
++		reg_val |= ((u4Tmp & 0x07)<<16);
++		printk("U2PHY P%d set SRCTRL %s value: %d\n", port_id, "calibration", u4Tmp);
++	} else {
++		reg_val |= (0x4<<16);
++		printk("U2PHY P%d set SRCTRL %s value: %d\n", port_id, "default", 4);
++	}
++	sysRegWrite(u2_phy_reg_base + OFS_U2_PHY_ACR0, reg_val);
 +}
 +
 +static int ralink_usb_phy_init(struct phy *_phy)
@@ -95,48 +233,99 @@
 +	return 0;
 +}
 +
++static void
++u2_phy_init(void)
++{
++	u32 reg_val;
++
++	reg_val = sysRegRead(ADDR_U2_PHY_P0_BASE + OFS_U2_PHY_AC2);
++	reg_val = sysRegRead(ADDR_U2_PHY_P0_BASE + OFS_U2_PHY_ACR0);
++	reg_val = sysRegRead(ADDR_U2_PHY_P0_BASE + OFS_U2_PHY_DCR0);
++
++	sysRegWrite(ADDR_U2_PHY_P0_BASE + OFS_U2_PHY_DCR0, 0x00ffff02);
++	reg_val = sysRegRead(ADDR_U2_PHY_P0_BASE + OFS_U2_PHY_DCR0);
++	sysRegWrite(ADDR_U2_PHY_P0_BASE + OFS_U2_PHY_DCR0, 0x00555502);
++	reg_val = sysRegRead(ADDR_U2_PHY_P0_BASE + OFS_U2_PHY_DCR0);
++	sysRegWrite(ADDR_U2_PHY_P0_BASE + OFS_U2_PHY_DCR0, 0x00aaaa02);
++	reg_val = sysRegRead(ADDR_U2_PHY_P0_BASE + OFS_U2_PHY_DCR0);
++	sysRegWrite(ADDR_U2_PHY_P0_BASE + OFS_U2_PHY_DCR0, 0x00000402);
++	reg_val = sysRegRead(ADDR_U2_PHY_P0_BASE + OFS_U2_PHY_DCR0);
++
++	sysRegWrite(ADDR_U2_PHY_P0_BASE + OFS_U2_PHY_AC0, 0x0048086a);
++	sysRegWrite(ADDR_U2_PHY_P0_BASE + OFS_U2_PHY_AC1, 0x4400001c);
++	sysRegWrite(ADDR_U2_PHY_P0_BASE + OFS_U2_PHY_ACR3, 0xc0200000);
++	sysRegWrite(ADDR_U2_PHY_P0_BASE + OFS_U2_PHY_DTM0, 0x02000000);
++}
++
++void
++uphy_init(void)
++{
++	if (atomic_inc_return(&uphy_init_instance) != 1)
++		return;
++
++	u2_phy_init();
++	u2_slew_rate_calibration(0, ADDR_U2_PHY_P0_BASE);
++}
++
++static void rt_usb_wake_up(void)
++{
++	u32 val;
++
++	/* enable PHY0/1 clock */
++	val = le32_to_cpu(*(volatile u32 *)(CLKCFG1_REG));
++	val |= (RALINK_UPHY0_CLK_EN | RALINK_UPHY1_CLK_EN);
++	*(volatile u32 *)(CLKCFG1_REG) = cpu_to_le32(val);
++
++	mdelay(10);
++
++	/* set HOST mode */
++	val = le32_to_cpu(*(volatile u32 *)(SYSCFG1_REG));
++	val |=  (RALINK_UHST_MODE);
++	*(volatile u32 *)(SYSCFG1_REG) = cpu_to_le32(val);
++
++	mdelay(1);
++
++	/* release reset */
++	val = le32_to_cpu(*(volatile u32 *)(RSTCTRL_REG));
++	val &= ~(RALINK_UHST_RST | RALINK_UDEV_RST);
++	*(volatile u32 *)(RSTCTRL_REG) = cpu_to_le32(val);
++
++	mdelay(100);
++
++	uphy_init();
++}
++
++static void rt_usb_sleep(void)
++{
++	u32 val;
++
++	/* raise reset */
++	val = le32_to_cpu(*(volatile u32 *)(RSTCTRL_REG));
++	val |= (RALINK_UHST_RST | RALINK_UDEV_RST);
++	*(volatile u32 *)(RSTCTRL_REG) = cpu_to_le32(val);
++
++	mdelay(10);
++
++	/* disable PHY0/1 clock */
++	val = le32_to_cpu(*(volatile u32 *)(CLKCFG1_REG));
++	val &= ~(RALINK_UPHY0_CLK_EN | RALINK_UPHY1_CLK_EN);
++	*(volatile u32 *)(CLKCFG1_REG) = cpu_to_le32(val);
++
++	udelay(10);
++}
++
 +static int ralink_usb_phy_power_on(struct phy *_phy)
 +{
-+	if (atomic_inc_return(&usb_pwr_ref) == 1) {
-+		int host = 1;
-+		u32 t;
-+
-+		usb_phy_enable(1);
-+
-+		if (host) {
-+			rt_sysc_m32(0, RT_SYSCFG1_USB0_HOST_MODE, RT_SYSC_REG_SYSCFG1);
-+			if (!IS_ERR(rsthost))
-+				reset_control_deassert(rsthost);
-+			if (!IS_ERR(rstdev))
-+				reset_control_deassert(rstdev);
-+		} else {
-+			rt_sysc_m32(RT_SYSCFG1_USB0_HOST_MODE, 0, RT_SYSC_REG_SYSCFG1);
-+			if (!IS_ERR(rstdev))
-+				reset_control_deassert(rstdev);
-+		}
-+		mdelay(100);
-+
-+		t = rt_sysc_r32(RT_SYSC_REG_USB_PHY_CFG);
-+		dev_info(&_phy->dev, "remote usb device wakeup %s\n",
-+			(t & UDEV_WAKEUP) ? ("enabbled") : ("disabled"));
-+		if (t & USB_PHY_UTMI_8B60M)
-+			dev_info(&_phy->dev, "UTMI 8bit 60MHz\n");
-+		else
-+			dev_info(&_phy->dev, "UTMI 16bit 30MHz\n");
-+	}
++	if (atomic_inc_return(&rt3xxx_power_instance) == 1)
++		rt_usb_wake_up();
 +
 +	return 0;
 +}
 +
 +static int ralink_usb_phy_power_off(struct phy *_phy)
 +{
-+	if (atomic_dec_return(&usb_pwr_ref) == 0) {
-+		usb_phy_enable(0);
-+		if (!IS_ERR(rstdev))
-+			reset_control_assert(rstdev);
-+		if (!IS_ERR(rsthost))
-+			reset_control_assert(rsthost);
-+	}
++	if (atomic_dec_return(&rt3xxx_power_instance) == 0)
++		rt_usb_sleep();
 +
 +	return 0;
 +}
@@ -168,6 +357,7 @@
 +	struct phy_provider *phy_provider;
 +	const struct of_device_id *match;
 +
++	printk("%s:%s[%d]\n", __FILE__, __func__, __LINE__);
 +	match = of_match_device(ralink_usb_phy_of_match, &pdev->dev);
 +	phy_clk = (int) match->data;
 +
@@ -181,6 +371,7 @@
 +	}
 +
 +	phy_provider = devm_of_phy_provider_register(dev, ralink_usb_phy_xlate);
++printk("%s:%s[%d]\n", __FILE__, __func__, __LINE__);
 +
 +	return PTR_ERR_OR_ZERO(phy_provider);
 +}

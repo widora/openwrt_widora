@@ -1,5 +1,5 @@
 config system
-	option hostname	OpenWrt
+	option hostname	Widora
 	option timezone	UTC
 
 config timeserver ntp
