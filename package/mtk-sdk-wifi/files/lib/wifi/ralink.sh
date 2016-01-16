@@ -41,7 +41,7 @@ config wifi-iface sta
 	option ssid	UplinkAp
 	option key	SecretKey
 	option encryption psk
-	option disabled	0
+	option disabled	1
 EOF
 }
 
