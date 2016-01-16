@@ -21,7 +21,7 @@ define Profile/Widora
 		kmod-video-core kmod-video-uvc \
 		kmod-sound-core kmod-sound-mtk madplay-alsa alsa-utils \
 		mtk-sdk-wifi \
-        	maccalc 
+        	maccalc shairport-mmap
 endef
 
 define Profile/Widora/Description
