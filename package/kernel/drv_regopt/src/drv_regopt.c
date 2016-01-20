@@ -52,12 +52,12 @@ static int reg_opt_read(struct file *filp, char __user *buff, size_t count, loff
 	//一定要先设置用户区的buff（即应用层read函数到第二个参数），就是要修改到物理寄存器地址
 	copy_from_user(&reg_param, buff, 4);	//物理地址4字节
 
-	printk("reg_add = %x\n", reg_param.reg_add);
+//	printk("reg_add = %x\n", reg_param.reg_add);
 	reg_param.vm_add = (volatile unsigned long *)ioremap(reg_param.reg_add, 0x4);	//映射寄存器
 	
-	printk("reg_vmadd = %x\n", reg_param.vm_add);
+//	printk("reg_vmadd = %x\n", reg_param.vm_add);
 	reg_param.reg_val = *(reg_param.vm_add);	//取出寄存器
-	printk("reg_val = %x\n", reg_param.reg_val);
+//	printk("reg_val = %x\n", reg_param.reg_val);
 	copy_to_user(buff,&reg_param, 8);	//物理地址和值，2个4字节
 	iounmap(reg_param.vm_add);	//取消映射
     	return 0;
@@ -67,12 +67,12 @@ static int reg_opt_write(struct file *filp, char __user *buff, size_t count, lof
 {
 	//把要修改的参数复制到内核reg_param中
 	copy_from_user(&reg_param, buff, 8);	//物理地址和值，2个4字节
-	printk("reg_add = %x\n", reg_param.reg_add);
-	printk("reg_val = %x\n", reg_param.reg_val);
+//	printk("reg_add = %x\n", reg_param.reg_add);
+//	printk("reg_val = %x\n", reg_param.reg_val);
 	reg_param.vm_add = (volatile unsigned long *)ioremap(reg_param.reg_add, 0x4);	//映射寄存器
-	printk("reg_vmadd = %x\n", reg_param.vm_add);
+//	printk("reg_vmadd = %x\n", reg_param.vm_add);
 	*(reg_param.vm_add) = reg_param.reg_val;
-	printk("reg_val = %x\n", *(reg_param.vm_add));
+//	printk("reg_val = %x\n", *(reg_param.vm_add));
 	iounmap(reg_param.vm_add);	//取消映射
 	return 0;
 }

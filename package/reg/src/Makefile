@@ -1,10 +1,10 @@
 # build testio executable when user executes "make"
 
-appreg: appreg.o
-	$(CC) $(LDFLAGS) appreg.o -o appreg
+appreg: reg.o
+	$(CC) $(LDFLAGS) reg.o -o reg
 
-appreg.o: appreg.c
-	$(CC) $(CFLAGS) -c appreg.c
+appreg.o: reg.c
+	$(CC) $(CFLAGS) -c reg.c
 
 # remove object files and executable when user executes "make clean"
 clean:
