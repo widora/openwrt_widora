@@ -37,13 +37,25 @@
 				ralink,group = "spis";
 				ralink,function = "gpio";
 			};
-			wled_kn {
-				ralink,group = "wled_kn";
-				ralink,function = "gpio";
-			};
 			wled_an {
 				ralink,group = "wled_an";
 				ralink,function = "wled_an";
+			};
+			ephy_p1 {
+				ralink,group = "ephy_p1";
+				ralink,function = "gpio";
+			};
+			ephy_p2 {
+				ralink,group = "ephy_p2";
+				ralink,function = "gpio";
+			};
+			ephy_p3 {
+				ralink,group = "ephy_p3";
+				ralink,function = "gpio";
+			};
+			ephy_p4 {
+				ralink,group = "ephy_p4";
+				ralink,function = "gpio";
 			};
 			wdt {
 				ralink,group = "wdt";
@@ -125,12 +137,6 @@
 		status = "okay";
 		mediatek,cd-low;
 //		mediatek,cd-poll;
-	};
-
-	bootstrap {
-		compatible = "mediatek,widora";
-
-		status = "okay";
 	};
 
 	gpio-leds {
