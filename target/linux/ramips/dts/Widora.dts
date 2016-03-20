@@ -31,7 +31,7 @@
 			};
 			i2s {
 				ralink,group = "i2s";
-				ralink,function = "gpio";
+				ralink,function = "i2s";
 			};
 			spis {
 				ralink,group = "spis";
@@ -99,7 +99,7 @@
 
 				partition@50000 {
 					label = "firmware";
-					reg = <0x50000 0x1fb0000>;
+					reg = <0x50000 0x0fb0000>;
 				};
 			};
 
@@ -136,6 +136,35 @@
 	sdhci@10130000 {
 		status = "okay";
 		mediatek,cd-low;
-//		mediatek,cd-poll;
 	};
+       gpio-leds {
+                compatible = "gpio-leds";
+                wifi {
+                        label = "mediatek:orange:wifi";
+                        gpios = <&wgpio 0 0>;
+                        default-state = "on";
+                };
+        };
+
+        gpio-keys-polled {
+                compatible = "gpio-keys-polled";
+                #address-cells = <1>;
+                #size-cells = <0>;
+                poll-interval = <20>;
+                wps {
+                        label = "reset";
+                        gpios = <&gpio1 6 1>;
+                        linux,code = <0x211>;
+                };
+        };
+
+        wgpio: gpio-wifi {
+                #address-cells = <1>;
+                #size-cells = <0>;
+
+                compatible = "mediatek,gpio-wifi";
+                gpio-controller;
+                #gpio-cells = <2>;
+        };
+
 };
