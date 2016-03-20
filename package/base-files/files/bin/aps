@@ -1,0 +1,6 @@
+#!/bin/sh
+clear
+echo "Widora AP scan."
+iwpriv ra0 set SiteSurvey=0
+sleep 5
+iwpriv ra0 get_site_survey
