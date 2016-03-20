@@ -1,0 +1,9 @@
+#!/bin/sh
+uci delete network.lan.ifname
+uci set    wireless.sta.disabled='1'
+uci set    network.lan.ipaddr='192.168.2.1'
+uci set    network.wan=interface
+uci set    network.wan.ifname='eth0'
+uci set    network.wan.proto='dhcp'
+uci commit
+nr

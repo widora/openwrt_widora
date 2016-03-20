@@ -2,6 +2,8 @@
 clear
 ussid=$1
 upass=$2
+		eth_set_lan
+		sleep 2
                 killall ap_client
                 uci set wireless.sta.ssid=$ussid
                 uci set wireless.sta.key=$upass
