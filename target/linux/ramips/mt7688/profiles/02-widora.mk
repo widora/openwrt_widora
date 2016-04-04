@@ -14,8 +14,8 @@ define Profile/Widora
         	mjpg-streamer \
 		uhttpd rpcd rpcd-mod-iwinfo \
 		luci luci-app-mjpg-streamer luci-app-samba luci-lib-json \
-		rpcd-mod-rpcsys cgi-io avrdude spi-tools \
-		kmod-fs-vfat kmod-i2c-core kmod-i2c-ralink \
+		rpcd-mod-rpcsys cgi-io spi-tools \
+		kmod-fs-vfat kmod-fs-exfat kmod-i2c-core kmod-i2c-ralink \
 		kmod-nls-base kmod-nls-cp437 kmod-nls-iso8859-1 kmod-nls-utf8 \
 		kmod-sdhci-mt7620 kmod-usb-storage \
 		kmod-video-core kmod-video-uvc \
