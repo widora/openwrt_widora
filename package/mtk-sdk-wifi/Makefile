@@ -81,7 +81,11 @@ define Package/mtk-sdk-wifi/install
 	
 	$(INSTALL_DIR) $(1)/sbin/
 	$(CP) $(PKG_BUILD_DIR)/ap_client $(1)/sbin/
-	$(CP) ./wifi_binary/mt_wifi.ko_$(LINUX_VERSION) $(1)/lib/modules/$(LINUX_VERSION)/mt_wifi.ko
+ifneq ($(CONFIG_ALL_KMODS),)
+        $(CP) ./wifi_binary/mt_wifi.ko_$(LINUX_VERSION)_all $(1)/lib/modules/$(LINUX_VERSION)/mt_wifi.ko
+else
+        $(CP) ./wifi_binary/mt_wifi.ko_$(LINUX_VERSION) $(1)/lib/modules/$(LINUX_VERSION)/mt_wifi.ko
+endif
 	$(CP) ./files/* $(1)
 
 endef
