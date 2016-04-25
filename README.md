@@ -1,5 +1,3 @@
-
-penwrt_widora wiki!
 How to compile?
 # 1.install depend
 $ sudo apt-get update
