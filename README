@@ -1,35 +1,30 @@
-This is the buildsystem for the OpenWrt Linux distribution.
 
-Please use "make menuconfig" to configure your appreciated
-configuration for the toolchain and firmware.
+penwrt_widora wiki!
+How to compile?
+# 1.install depend
+$ sudo apt-get update
 
-You need to have installed gcc, binutils, bzip2, flex, python, perl, make,
-find, grep, diff, unzip, gawk, getopt, subversion, libz-dev and libc headers.
+$ sudo apt-get install git g++ make libncurses5-dev subversion libssl-dev gawk libxml-parser-perl unzip wget python \
+xz-utils vim
+# 2.download the source use git
+$ git clone https://github.com/widora/openwrt_widora.git
+# 3.update the feeds
+$ cd openwrt_widora
+$ ./scripts/feeds update -a
 
-Run "./scripts/feeds update -a" to get all the latest package definitions
-defined in feeds.conf / feeds.conf.default respectively
-and "./scripts/feeds install -a" to install symlinks of all of them into
-package/feeds/.
+$ ./scripts/feeds install -a
+# 4.config
+$ make menuconfig
+select the target:
 
-Use "make menuconfig" to configure your image.
+Target System(Ralink RT288x/RT3xxx) --->
 
-Simply running "make" will build your firmware.
-It will download all sources, build the cross-compile toolchain, 
-the kernel and all choosen applications.
+Subtarget(MT7688 based board) --->
 
-You can use "scripts/flashing/flash.sh" for remotely updating your embedded
-system via tftp.
+Target Profile(Widora) --->
 
-The OpenWrt system is documented in docs/. You will need a LaTeX distribution
-and the tex4ht package to build the documentation. Type "make -C docs/" to build it.
-
-To build your own firmware you need to have access to a Linux, BSD or MacOSX system
-(case-sensitive filesystem required). Cygwin will not be supported because of
-the lack of case sensitiveness in the file system.
-
-
-Sunshine!
-	Your OpenWrt Project
-	http://openwrt.org
-
-
+# 5.make
+$ make -j4
+# 6.image
+the binary image name like this in bin/ramips/:
+openwrt-ramips-mt7688-Widora-squashfs-sysupgrade.bin
