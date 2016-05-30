@@ -51,7 +51,7 @@ detect_ralink() {
 	cpu=$(awk 'BEGIN{FS="[ \t]+: MediaTek[ \t]"} /system type/ {print $2}' /proc/cpuinfo | cut -d" " -f1)
 	case $cpu in
 	MT7688)
-		write_ralink mt_wifi mt7628 ra0 11g 7
+		write_ralink mt7628 mt7628 ra0 11g 7
 		;;
 	esac
 
