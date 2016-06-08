@@ -81,8 +81,7 @@ define Package/mtk-sdk-wifi/install
 	
 	$(INSTALL_DIR) $(1)/sbin/
 	$(CP) $(PKG_BUILD_DIR)/ap_client $(1)/sbin/
-	$(CP) ./wifi_binary/ralink-dep.ko $(1)/lib/modules/$(LINUX_VERSION)/ralink-dep.ko
-	$(CP) ./wifi_binary/mt7628.ko $(1)/lib/modules/$(LINUX_VERSION)/mt7628.ko
+	$(CP) ./wifi_binary/mt_wifi.ko $(1)/lib/modules/$(LINUX_VERSION)/mt_wifi.ko
 	$(CP) ./files/* $(1)
 
 endef
