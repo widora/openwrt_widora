@@ -255,6 +255,7 @@ get_status_led() {
 	tl-wa901nd | \
 	tl-wa901nd-v2 | \
 	tl-wa901nd-v3 | \
+	tl-wa901nd-v4 | \
 	tl-wdr3500 | \
 	tl-wr1041n-v2 | \
 	tl-wr1043nd | \
@@ -279,7 +280,8 @@ get_status_led() {
 	tl-wdr4300 | \
 	tl-wr703n | \
 	tl-wr710n | \
-	tl-wr720n-v3)
+	tl-wr720n-v3 | \
+	tl-wr941nd-v6)
 		status_led="tp-link:blue:system"
 		;;
 	tl-wr841n-v9)
@@ -324,7 +326,8 @@ get_status_led() {
 	wnr2000 | \
 	wnr2200 |\
 	wnr612-v2 |\
-	wnr1000-v2)
+	wnr1000-v2 |\
+	wpn824n)
 		status_led="netgear:green:power"
 		;;
 	wp543)

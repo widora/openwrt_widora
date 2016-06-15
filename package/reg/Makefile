@@ -39,7 +39,7 @@ define Build/Prepare
 endef
 
 
-define Package/appreg/install
+define Package/reg/install
 	$(INSTALL_DIR) $(1)/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/reg $(1)/bin/
 endef

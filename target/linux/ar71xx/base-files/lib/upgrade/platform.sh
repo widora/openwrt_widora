@@ -338,6 +338,7 @@ platform_check_image() {
 	tl-wa901nd | \
 	tl-wa901nd-v2 | \
 	tl-wa901nd-v3 | \
+	tl-wa901nd-v4 | \
 	tl-wdr3500 | \
 	tl-wdr4300 | \
 	tl-wdr4900-v2 | \
@@ -354,6 +355,7 @@ platform_check_image() {
 	tl-wr842n-v2 | \
 	tl-wr941nd | \
 	tl-wr941nd-v5 | \
+	tl-wr941nd-v6 | \
 	tl-wr1041n-v2 | \
 	tl-wr1043nd | \
 	tl-wr1043nd-v2 | \
@@ -401,7 +403,8 @@ platform_check_image() {
 	wndr3700 | \
 	wnr2000-v3 | \
 	wnr612-v2 | \
-	wnr1000-v2)
+	wnr1000-v2 | \
+	wpn824n)
 		local hw_magic
 
 		hw_magic="$(ar71xx_get_mtd_part_magic firmware)"

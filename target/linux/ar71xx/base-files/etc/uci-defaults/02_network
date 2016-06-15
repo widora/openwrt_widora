@@ -226,11 +226,13 @@ tl-mr3420-v2 |\
 tl-wr841n-v8 |\
 tl-wr842n-v2 |\
 tl-wr941nd-v5 |\
+tl-wr941nd-v6 |\
 wnr2000-v3 |\
 wnr2000-v4 |\
 wnr2200 |\
 wnr612-v2 |\
-wnr1000-v2)
+wnr1000-v2 |\
+wpn824n)
 	ucidef_set_interfaces_lan_wan "eth1" "eth0"
 	ucidef_add_switch "switch0" "1" "1"
 	ucidef_add_switch_vlan "switch0" "1" "0 1 2 3 4"
@@ -321,6 +323,7 @@ dlan-pro-1200-ac)
 	ucidef_add_switch_vlan "switch0" "0" "0 2 3 4"
 	;;
 
+alfa-ap120c |\
 all0305 |\
 antminer-s1 |\
 antminer-s3 |\
@@ -360,6 +363,7 @@ tl-wa801nd-v2 |\
 tl-wa901nd |\
 tl-wa901nd-v2 |\
 tl-wa901nd-v3 |\
+tl-wa901nd-v4 |\
 tl-wr703n |\
 tube2h |\
 wndap360 |\

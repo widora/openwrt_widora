@@ -123,7 +123,7 @@ tplink_board_detect() {
 	"3C0002"*)
 		model="MINIBOX_V1"
 		;;
-	"070300"*)
+	"070301"*)
 		model="TP-Link TL-WR703N"
 		;;
 	"071000"*)
@@ -329,6 +329,9 @@ ar71xx_board_detect() {
 		;;
 	*"AirRouter")
 		name="airrouter"
+		;;
+	*"ALFA Network AP120C")
+		name="alfa-ap120c"
 		;;
 	*"ALFA Network AP96")
 		name="alfa-ap96"
@@ -764,6 +767,9 @@ ar71xx_board_detect() {
 	*"TL-WA901ND v3")
 		name="tl-wa901nd-v3"
 		;;
+	*"TL-WA901ND v4")
+		name="tl-wa901nd-v4"
+		;;
 	*"TL-WDR3500")
 		name="tl-wdr3500"
 		;;
@@ -799,6 +805,9 @@ ar71xx_board_detect() {
 		;;
 	*"TL-WR941N/ND v5")
 		name="tl-wr941nd-v5"
+		;;
+	*"TL-WR941N/ND v6")
+		name="tl-wr941nd-v6"
 		;;
 	*"TL-WR703N v1")
 		name="tl-wr703n"
@@ -895,6 +904,9 @@ ar71xx_board_detect() {
 		;;
 	*"WNR1000 V2")
 		name="wnr1000-v2"
+		;;
+	*WPN824N)
+		name="wpn824n"
 		;;
 	*WRT160NL)
 		name="wrt160nl"

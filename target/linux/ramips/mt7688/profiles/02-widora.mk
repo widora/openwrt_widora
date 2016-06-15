@@ -13,15 +13,14 @@ define Profile/Widora
   		mountd \
         	mjpg-streamer \
 		uhttpd rpcd rpcd-mod-iwinfo \
-		luci luci-theme-openwrt luci-app-mjpg-streamer luci-app-samba luci-lib-json \
-		rpcd-mod-rpcsys cgi-io avrdude spi-tools \
-		kmod-fs-vfat kmod-i2c-core kmod-i2c-ralink \
+		rpcd-mod-rpcsys cgi-io spi-tools \
+		kmod-fs-vfat kmod-fs-exfat kmod-i2c-core kmod-i2c-ralink \
 		kmod-nls-base kmod-nls-cp437 kmod-nls-iso8859-1 kmod-nls-utf8 \
 		kmod-sdhci-mt7620 kmod-usb-storage \
 		kmod-video-core kmod-video-uvc \
 		kmod-sound-core kmod-sound-mtk madplay-alsa alsa-utils \
 		mtk-sdk-wifi \
-        	maccalc shairport-mmap reg
+        	maccalc shairport_mmap reg
 endef
 
 define Profile/Widora/Description
