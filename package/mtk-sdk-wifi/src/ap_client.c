@@ -283,9 +283,19 @@ int main(int argc, char **argv)
 {
 	FILE *fp;
 	char path[256];
-
-	if (argc == 3)
+	if (argc == 2){
+		if(strstr(argv[1],"-h")){
+		printf("USAGE:\nCheck Connection: ap_client -c [apcli0 apcli1] \n");
+		return 0;
+	}}
+	if (argc == 3){
+		if(strstr(argv[1],"-c")) {
+		printf("Wifi connected : %s\n", check_assoc(argv[2])?"yes":"no");
+		return 0;
+	} else {
 		return main_led(argc, argv);
+	}
+	}
 
 	if (argc < 5)
 		return -1;
