@@ -37,6 +37,7 @@ ralink_setup_ap(){
 
 	[ -z "$force_channel" ] || iwpriv $ifname set Channel=$force_channel
 	[ "$isolate" = 1 ] || isolate=0
+	isolate=0
 	iwpriv $ifname set NoForwarding=$isolate
 	iwpriv $ifname set NoForwardingBTNBSSID=$isolate
 	iwpriv $ifname set NoForwardingMBCast=$isolate
