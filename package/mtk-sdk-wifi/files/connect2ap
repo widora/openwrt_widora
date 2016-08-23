@@ -1,0 +1,16 @@
+#!/bin/sh
+clear
+ussid=$1
+upass=$2
+		eth_set_lan
+		sleep 2
+                killall ap_client
+                uci set wireless.sta.ssid=$ussid
+                uci set wireless.sta.key=$upass
+                uci set wireless.radio0.channel='auto'
+                uci set wireless.sta.disabled='0'
+                uci set network.wan=interface
+                uci set network.wan.ifname='apcli0'
+                uci set network.wan.proto='dhcp'
+                uci commit
+                wifi

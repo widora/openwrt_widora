@@ -15,9 +15,9 @@ PKG_CONFIG_DEPENDS:=
 include $(INCLUDE_DIR)/package.mk
 
 define Package/uci2dat
-  SECTION:=Ralink SDK
-  CATEGORY:=Ralink SDK
-  DEPENDS:=+libuci
+  SECTION:=Ralink SDK Mango
+  CATEGORY:=Ralink SDK Mango
+  DEPENDS:=@TARGET_ramips_mt7688_Widora +libuci
   TITLE:=Translate uci config into ralink wifi dat format
 endef
 
