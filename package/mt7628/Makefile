@@ -16,7 +16,7 @@ include $(INCLUDE_DIR)/package.mk
 define KernelPackage/mt7628
   CATEGORY:=Ralink SDK Mango
   TITLE:=Ralink MT7628 wifi AP driver by Mango
-  AUTOLOAD:=$(call AutoLoad,90,mt7628)
+  AUTOLOAD:=$(call AutoLoad,52,mt7628)
   DEPENDS:=@TARGET_ramips_mt7688_Widora +uci2dat +iwinfo
 endef
 
