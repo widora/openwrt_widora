@@ -19,7 +19,7 @@ define Profile/Widora
 		kmod-sdhci-mt7620 kmod-usb-storage \
 		kmod-video-core kmod-video-uvc \
 		kmod-sound-core kmod-sound-mtk madplay-alsa alsa-utils \
-		kmod-mt7628 airkiss\
+		mt7628WIFI airkiss\
         	maccalc shairport_mmap reg
 endef
 
