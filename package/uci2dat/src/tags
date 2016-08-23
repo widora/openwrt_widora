@@ -1,0 +1,60 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+CFG_ELEMENTS	uci2dat.c	/^param CFG_ELEMENTS[] =$/;"	v
+DEVNUM_MAX	uci2dat.c	36;"	d	file:
+FPRINT	uci2dat.c	40;"	d	file:
+MBSSID_MAX	uci2dat.c	37;"	d	file:
+NG	uci2dat.c	28;"	d	file:
+NG	uci2dat.c	30;"	d	file:
+OK	uci2dat.c	23;"	d	file:
+OK	uci2dat.c	25;"	d	file:
+PARSE_UCI_OPTION	uci2dat.c	59;"	d	file:
+SHDBG	uci2dat.c	33;"	d	file:
+SHDBG	uci2dat.c	35;"	d	file:
+STRNCPPP	uci2dat.c	654;"	d	file:
+VIF	uci2dat.c	/^vif VIF =$/;"	v
+WIFI_UCI_FILE	uci2dat.c	57;"	d	file:
+__dump_all	uci2dat.c	/^char * __dump_all(void)$/;"	f
+__get_value	uci2dat.c	/^char * __get_value(char * datkey)$/;"	f
+_param	uci2dat.c	/^typedef struct  _param$/;"	s	file:
+_vif	uci2dat.c	/^typedef struct _vif$/;"	s	file:
+auth_port	uci2dat.c	/^    param auth_port;$/;"	m	struct:_vif	file:
+auth_secret	uci2dat.c	/^    param auth_secret;$/;"	m	struct:_vif	file:
+auth_server	uci2dat.c	/^    param auth_server;$/;"	m	struct:_vif	file:
+authmode	uci2dat.c	/^    param authmode;        \/* wep, wpa, ... *\/$/;"	m	struct:_vif	file:
+cipher	uci2dat.c	/^    param cipher;          \/* ccmp(aes),tkip *\/$/;"	m	struct:_vif	file:
+dat_key	uci2dat.c	/^    const char *    dat_key;$/;"	m	struct:_param	file:
+defvalue	uci2dat.c	/^    const char *    defvalue;$/;"	m	struct:_param	file:
+devname	uci2dat.c	/^    char    devname[16];$/;"	m	struct:__anon1	file:
+gen_dat	uci2dat.c	/^void gen_dat(char * devname, char * datpath)$/;"	f
+hidden	uci2dat.c	/^    param hidden;          \/* Hidden SSID *\/$/;"	m	struct:_vif	file:
+hook	uci2dat.c	/^    ucihook         hook;$/;"	m	struct:_param	file:
+hooker	uci2dat.c	/^void hooker(FILE * fp, param * p, const char * devname)$/;"	f
+init_wifi_cfg	uci2dat.c	/^void init_wifi_cfg(void)$/;"	f
+key	uci2dat.c	/^    param key;             \/* wpa psk *\/$/;"	m	struct:_vif	file:
+main	uci2dat.c	/^int main(int argc, char ** argv)$/;"	f
+param	uci2dat.c	/^} param;$/;"	t	typeref:struct:_param	file:
+params	uci2dat.c	/^    param * params;$/;"	m	struct:__anon1	file:
+parse_dat	uci2dat.c	/^void parse_dat(char * devname, char * datpath)$/;"	f
+parse_uci	uci2dat.c	/^void parse_uci(char * arg)$/;"	f
+pmkcacheperiod	uci2dat.c	/^    param pmkcacheperiod;$/;"	m	struct:_vif	file:
+preauth	uci2dat.c	/^    param preauth;$/;"	m	struct:_vif	file:
+rekeyinteval	uci2dat.c	/^    param rekeyinteval;$/;"	m	struct:_vif	file:
+ssid	uci2dat.c	/^    param ssid;$/;"	m	struct:_vif	file:
+strmatch	uci2dat.c	/^int strmatch(const char * str, const char * pattern)$/;"	f
+uci_ctx	uci2dat.c	/^static struct uci_context * uci_ctx;$/;"	v	typeref:struct:uci_context	file:
+uci_key	uci2dat.c	/^    const char *    uci_key;$/;"	m	struct:_param	file:
+uci_wireless	uci2dat.c	/^static struct uci_package * uci_wireless;$/;"	v	typeref:struct:uci_package	file:
+ucihook	uci2dat.c	/^typedef void (*ucihook)(FILE *,struct _param *, const char * devname);$/;"	t	file:
+usage	uci2dat.c	/^void usage(void)$/;"	f
+value	uci2dat.c	/^    char            value[128];$/;"	m	struct:_param	file:
+vif	uci2dat.c	/^} vif;$/;"	t	typeref:struct:_vif	file:
+vifnum	uci2dat.c	/^    int     vifnum;$/;"	m	struct:__anon1	file:
+vifs	uci2dat.c	/^    vif     vifs[MBSSID_MAX];$/;"	m	struct:__anon1	file:
+wepkey	uci2dat.c	/^    param wepkey[4];       \/* wep key, ugly, yep! *\/$/;"	m	struct:_vif	file:
+wifi_cfg	uci2dat.c	/^static wifi_params wifi_cfg[DEVNUM_MAX];$/;"	v	file:
+wifi_params	uci2dat.c	/^} wifi_params;$/;"	t	typeref:struct:__anon1	file:
