@@ -14,7 +14,8 @@ define Profile/Widora
         	mjpg-streamer \
 		uhttpd rpcd rpcd-mod-iwinfo \
 		rpcd-mod-rpcsys cgi-io spi-tools \
-		kmod-fs-vfat kmod-fs-exfat kmod-i2c-core kmod-i2c-ralink \
+		kmod-fs-vfat kmod-fs-exfat kmod-fs-ext4 block-mount e2fsprogs \
+		kmod-i2c-core kmod-i2c-ralink \
 		kmod-nls-base kmod-nls-cp437 kmod-nls-iso8859-1 kmod-nls-utf8 \
 		kmod-sdhci-mt7620 kmod-usb-storage \
 		kmod-video-core kmod-video-uvc \
