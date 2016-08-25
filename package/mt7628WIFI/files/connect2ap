@@ -46,6 +46,7 @@ do
 
 		echo $umode
 		echo $uencryp
+		echo $channel
 #		nvram_set 2860  ApCliSsid $ussid
 #		nvram_set 2860  ApCliBssid  $mac
 #		nvram_set 2860  ApCliAuthMode $umode
