@@ -48,6 +48,7 @@ ramips_setup_interfaces()
 	linkits7688 | \
 	linkits7688d | \
 	widora | \
+	widora32m | \
 	microwrt | \
 	w150m | \
 	zte-q7 | \
@@ -387,7 +388,8 @@ ramips_setup_macs()
 		wan_mac=$(mtd_get_mac_binary factory 4)
 		lan_mac=$(mtd_get_mac_binary factory 46)
 		;;
-	widora)
+	widora | \
+	widora32m)
 		wan_mac=$(mtd_get_mac_binary factory 4)
 		lan_mac=$(mtd_get_mac_binary factory 46)
 		;;

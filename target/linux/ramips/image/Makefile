@@ -1028,12 +1028,14 @@ Image/Build/Profile/MT7688=$(call BuildFirmware/Default4M/$(1),$(1),mt7628,MT762
 Image/Build/Profile/LinkIt7688=$(call BuildFirmware/Default32M/$(1),$(1),LinkIt7688,LINKIT7688)
 
 Image/Build/Profile/Widora=$(call BuildFirmware/Default16M/$(1),$(1),Widora,Widora)
+Image/Build/Profile/Widora32M=$(call BuildFirmware/Default32M/$(1),$(1),Widora32M,Widora32M)
 
 ifeq ($(SUBTARGET),mt7628)
 define Image/Build/Profile/Default
 	$(call Image/Build/Profile/MT7688,$(1))
 	$(call Image/Build/Profile/LinkIt7688,$(1))
 	$(call Image/Build/Profile/Widora,$(1))
+	$(call Image/Build/Profile/Widora32M,$(1))
 endef
 endif
 

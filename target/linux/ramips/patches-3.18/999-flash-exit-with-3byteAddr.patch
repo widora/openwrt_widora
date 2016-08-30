@@ -1,0 +1,24 @@
+Index: linux-3.18.29/drivers/mtd/devices/m25p80.c
+===================================================================
+--- linux-3.18.29.orig/drivers/mtd/devices/m25p80.c	2016-08-30 22:17:31.000000000 +0800
++++ linux-3.18.29/drivers/mtd/devices/m25p80.c	2016-08-30 22:24:45.000000000 +0800
+@@ -322,6 +322,11 @@
+ {
+ 	struct m25p	*flash = spi_get_drvdata(spi);
+ 
++	//refer to manfeel
++	flash->command[0] = 0x66;
++	spi_write(flash->spi, flash->command,1);
++	flash->command[0] = 0x99;
++	spi_write(flash->spi, flash->command,1);
+ 	/* Clean up MTD stuff. */
+ 	return mtd_device_unregister(&flash->mtd);
+ }
+@@ -385,6 +390,7 @@
+ 	.id_table	= m25p_ids,
+ 	.probe	= m25p_probe,
+ 	.remove	= m25p_remove,
++	.shutdown = m25p_remove,
+ 
+ 	/* REVISIT: many of these chips have deep power-down modes, which
+ 	 * should clearly be entered on suspend() to minimize power use.
