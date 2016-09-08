@@ -1,0 +1,150 @@
+From 8aa6f65bd41b6e9b4f3bfdd77d4b4ae5c92520ea Mon Sep 17 00:00:00 2001
+From: Pillar Zuo <zuobaozhu@gmail.com>
+Date: Wed, 7 Sep 2016 19:51:13 +0800
+Subject: [PATCH 4/7] update i2s_ctrl
+
+Signed-off-by: Pillar Zuo <zuobaozhu@gmail.com>
+---
+ sound/soc/mtk/i2s_ctrl.c | 34 ++++++++++++++++++++--------------
+ sound/soc/mtk/i2s_ctrl.h |  2 +-
+ 2 files changed, 21 insertions(+), 15 deletions(-)
+
+diff --git a/sound/soc/mtk/i2s_ctrl.c b/sound/soc/mtk/i2s_ctrl.c
+index 63d79b7..eed7306 100644
+--- a/sound/soc/mtk/i2s_ctrl.c
++++ b/sound/soc/mtk/i2s_ctrl.c
+@@ -2016,7 +2016,7 @@ int i2s_tx_enable(i2s_config_type* ptri2s_config)
+ 	data = i2s_inw(I2S_I2SCFG);
+ 	data |= REGBIT(0x1, I2S_EN);
+ 	i2s_outw(I2S_I2SCFG, data);
+-	
++	pi2s_config->bTxDMAEnable = 1;
+ 	MSG("i2s_tx_enable done\n");
+ 	return I2S_OK;
+ }
+@@ -2045,6 +2045,7 @@ int i2s_rx_enable(i2s_config_type* ptri2s_config)
+ 	data = i2s_inw(I2S_I2SCFG);
+ 	data |= REGBIT(0x1, I2S_EN);
+ 	i2s_outw(I2S_I2SCFG, data);
++	ptri2s_config->bRxDMAEnable = 1;
+ 	
+ 	MSG("i2s_rx_enable done\n");
+ 	return I2S_OK;
+@@ -2069,7 +2070,7 @@ int i2s_tx_disable(i2s_config_type* ptri2s_config)
+ #endif	
+ 	if(ptri2s_config->bRxDMAEnable==0)
+ 	{
+-		MSG("=====%s+++++",__func__);
++		MSG("=====%s+++++:%d\n",__func__,ptri2s_config->bTxDMAEnable);
+ 		ptri2s_config->bTxDMAEnable = 0;
+ 		data &= ~REGBIT(0x1, I2S_DMA_EN);
+                 data &= ~REGBIT(0x1, I2S_EN);
+@@ -2172,7 +2173,8 @@ int i2s_dma_tx_transf_zero(i2s_config_type* ptri2s_config, u32 dma_ch)
+ #if defined(ARM_ARCH)
+ 		GdmaI2sTx(i2s_txdma_addr0, I2S_TX_FIFO_WREG_PHY, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
+ #else
+-                GdmaI2sTx((u32)pi2s_config->pPage0TxBuf8ptr, I2S_TX_FIFO_WREG, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
++			MSG("+++++++%s+++++\n",__func__);
++            GdmaI2sTx((u32)pi2s_config->pPage0TxBuf8ptr, I2S_TX_FIFO_WREG, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
+ #endif
+         }
+         else
+@@ -2291,7 +2293,7 @@ void i2s_dma_tx_handler(u32 dma_ch)
+ 			if (pi2s_config->tx_stop_cnt == 3)
+ 			{
+                         	wake_up_interruptible(&(pi2s_config->i2s_tx_qh));
+-				_printk("T:wake up!!\n");
++				MSG("T:wake up!!\n");
+ 			}
+ 		}
+ 		return;
+@@ -2308,27 +2310,29 @@ void i2s_dma_tx_handler(u32 dma_ch)
+ 		if(pi2s_config->dmaStat[STREAM_PLAYBACK])
+ 		{
+ 			if(!pi2s_config->bTrigger[STREAM_PLAYBACK]){
+-				//_printk("trigger stop: rIdx:%d widx:%d\n", pi2s_config->tx_r_idx,pi2s_config->tx_w_idx);
+-                i2s_dma_tx_transf_zero(pi2s_config, dma_ch);
++				MSG("trigger stop: rIdx:%d widx:%d\n", pi2s_config->tx_r_idx,pi2s_config->tx_w_idx);
++                //i2s_dma_tx_transf_zero(pi2s_config, dma_ch);
++                i2s_dma_tx_transf_data(pi2s_config, dma_ch);
+                 if(pi2s_config->bPreTrigger[STREAM_PLAYBACK]){
+                     /* mtk04880 commented:
+                      * for corner case, there are cases which ALSA Trigger stop before disabling DMA.
+                      * For which case, it needs to keep call snd_pcm_elapased to keep ALSA hw ptr updating.
+                      * It is so called post stop handlment.
+                      */
+-                    //_printk("post-stop\n");
++                    //MSG("post-stop\n");
+                     goto EXIT;
+                 }
+                 else{
+-                    //_printk("pre-stop\n");
++                    //MSG("pre-stop\n");
+                     wake_up_interruptible(&(pi2s_config->i2s_tx_qh));
+                     return;
+                 }
+              }
+             else{
+-                    if(!pi2s_config->bPreTrigger[STREAM_PLAYBACK])
++                    if(!pi2s_config->bPreTrigger[STREAM_PLAYBACK]){
+                             pi2s_config->bPreTrigger[STREAM_PLAYBACK] = 1;
+-
++							MSG("bPreTrigger:STREAM_PLAYBACK\n");
++                    	}
+ 			}
+ 		}	
+ 	}
+@@ -2413,7 +2417,7 @@ void i2s_dma_rx_handler(u32 dma_ch)
+ 	{
+ 		 if(pi2s_config->dmaStat[STREAM_CAPTURE]){
+ 			if(!pi2s_config->bTrigger[STREAM_CAPTURE]){
+-                    MSG("trigger stop: rIdx:%d widx:%d\n", pi2s_config->rx_r_idx,pi2s_config->rx_w_idx);
++                    //MSG("trigger stop: rIdx:%d widx:%d\n", pi2s_config->rx_r_idx,pi2s_config->rx_w_idx);
+ 					i2s_dma_rx_transf_zero(pi2s_config, dma_ch);
+                     wake_up_interruptible(&(pi2s_config->i2s_rx_qh));
+                     return;
+@@ -2719,16 +2723,16 @@ void i2s_dma_tx_end_handle(i2s_config_type* ptri2s_config)
+ 	if (ptri2s_config->tx_w_idx < ptri2s_config->tx_r_idx)
+         {
+         	ptri2s_config->end_cnt = (ptri2s_config->tx_w_idx + MAX_I2S_PAGE)-ptri2s_config->tx_r_idx;
+-                _printk("case1: w=%d, r=%d, end=%d\n", ptri2s_config->tx_w_idx, ptri2s_config->tx_r_idx, ptri2s_config->end_cnt);
++                MSG("case1: w=%d, r=%d, end=%d\n", ptri2s_config->tx_w_idx, ptri2s_config->tx_r_idx, ptri2s_config->end_cnt);
+         }
+         else if (ptri2s_config->tx_w_idx > ptri2s_config->tx_r_idx)
+         {
+                 ptri2s_config->end_cnt = ptri2s_config->tx_w_idx-ptri2s_config->tx_r_idx;
+-                _printk("case2: w=%d, r=%d, end=%d\n", ptri2s_config->tx_w_idx, ptri2s_config->tx_r_idx, ptri2s_config->end_cnt);
++                MSG("case2: w=%d, r=%d, end=%d\n", ptri2s_config->tx_w_idx, ptri2s_config->tx_r_idx, ptri2s_config->end_cnt);
+         }
+ 	else
+ 	{
+-		_printk("case3: w=%d, r=%d, end=%d\n", ptri2s_config->tx_w_idx, ptri2s_config->tx_r_idx, ptri2s_config->end_cnt);
++		MSG("case3: w=%d, r=%d, end=%d\n", ptri2s_config->tx_w_idx, ptri2s_config->tx_r_idx, ptri2s_config->end_cnt);
+ 		
+ 	}
+ 	if (ptri2s_config->end_cnt > 0)
+@@ -3406,6 +3410,8 @@ int i2s_page_release(i2s_config_type* ptri2s_config,int dir)
+ 
+ int i2s_startup(void)
+ {
++	MSG("%s*******************\n",__func__);
++
+ 	memset(pi2s_config, 0, sizeof(i2s_config_type));
+ 	
+ #ifdef I2S_STATISTIC
+diff --git a/sound/soc/mtk/i2s_ctrl.h b/sound/soc/mtk/i2s_ctrl.h
+index 1e9d6e1..e14892b 100644
+--- a/sound/soc/mtk/i2s_ctrl.h
++++ b/sound/soc/mtk/i2s_ctrl.h
+@@ -58,7 +58,7 @@
+ #define MT7628_ASIC_BOARD
+ #endif
+ 
+-#define I2S_DEBUG_PRN
++//#define I2S_DEBUG_PRN
+ #ifdef I2S_DEBUG_PRN
+ #define MSG(fmt, args...) printk("I2S: " fmt, ## args)
+ #else
+-- 
+1.9.1
+

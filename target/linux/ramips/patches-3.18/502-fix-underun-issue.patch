@@ -1,0 +1,431 @@
+From e23b733a0613da9b7b38e9d6b5bb94e525a2ae7f Mon Sep 17 00:00:00 2001
+From: Pillar Zuo <zuobaozhu@gmail.com>
+Date: Wed, 27 Jul 2016 14:48:04 +0800
+Subject: [PATCH 2/7] fix underun issue
+
+Signed-off-by: Pillar Zuo <zuobaozhu@gmail.com>
+---
+ sound/soc/mtk/i2s_ctrl.c   | 148 +++++++++++++++++++++++++--------------------
+ sound/soc/mtk/i2s_ctrl.h   |  10 +--
+ sound/soc/mtk/mt76xx_i2s.c |   6 +-
+ sound/soc/mtk/mt76xx_pcm.c |  21 ++++++-
+ 4 files changed, 108 insertions(+), 77 deletions(-)
+
+diff --git a/sound/soc/mtk/i2s_ctrl.c b/sound/soc/mtk/i2s_ctrl.c
+index 7557d09..8141c5b 100644
+--- a/sound/soc/mtk/i2s_ctrl.c
++++ b/sound/soc/mtk/i2s_ctrl.c
+@@ -97,7 +97,7 @@ static int i2s_ioctl(struct inode *inode, struct file *file, unsigned int cmd, u
+ static int i2s_mmap(struct file *file, struct vm_area_struct *vma);
+ static int i2s_open(struct inode *inode, struct file *file);
+ static int i2s_release(struct inode *inode, struct file *file);
+-int i2s_mmap_alloc(unsigned long size);
++int i2s_mmap_alloc(unsigned long size,int dir);
+ int i2s_mmap_remap(struct vm_area_struct *vma, unsigned long size);
+ 
+ /* global varable definitions */
+@@ -377,12 +377,17 @@ static int i2s_release(struct inode *inode, struct file *filp)
+ 	ptri2s_config = filp->private_data;
+ 	if(ptri2s_config==NULL)
+ 		goto EXIT;
+-#ifdef CONFIG_I2S_MMAP	
+-	i2s_mem_unmap(ptri2s_config);
+-#else
+-	i2s_txbuf_free(ptri2s_config);
+-	i2s_rxbuf_free(ptri2s_config);
+-#endif	
++
++	if(pi2s_config->is_tx_mmap)
++		i2s_mem_unmap(ptri2s_config,STREAM_PLAYBACK);
++	else
++		i2s_txbuf_free(ptri2s_config);
++
++	if(pi2s_config->is_rx_mmap)
++		i2s_mem_unmap(ptri2s_config,STREAM_CAPTURE);
++	else
++		i2s_rxbuf_free(ptri2s_config);
++	
+ 	/* free buffer */
+ 	i2s_txPagebuf_free(ptri2s_config);
+ 	i2s_rxPagebuf_free(ptri2s_config);	
+@@ -391,14 +396,20 @@ EXIT:
+ 	return 0;
+ }
+ 
+-int i2s_mmap_alloc(unsigned long size)
++int i2s_mmap_alloc(unsigned long size,int dir)
+ {
+ 	int i;
+ 	u32 page_size;
+        	int first_index;
+ 
+ 	page_size = I2S_PAGE_SIZE;
+-
++	if(STREAM_PLAYBACK == dir){
++		pi2s_config->mmap_index = 0;
++	}
++	else{
++		pi2s_config->mmap_index = MAX_I2S_PAGE;
++	}
++	
+ 	if ((pi2s_config->mmap_index == 0) || (pi2s_config->mmap_index == MAX_I2S_PAGE))
+ 	{
+ 		MSG("mmap_index=%d\n", pi2s_config->mmap_index);
+@@ -443,7 +454,6 @@ int i2s_mmap_alloc(unsigned long size)
+ int i2s_mmap_remap(struct vm_area_struct *vma, unsigned long size)
+ {
+ 	int nRet;
+-
+ 	if((pi2s_config->pMMAPBufPtr[0]!=NULL) && (pi2s_config->mmap_index == MAX_I2S_PAGE))
+ 	{
+ 		MSG("i2s_mmap_remap:0\n");
+@@ -486,7 +496,7 @@ static int i2s_mmap(struct file *filp, struct vm_area_struct *vma)
+ 	_printk("%s: vm_start=%08X,vm_end=%08X\n", __func__, (u32)vma->vm_start, (u32)vma->vm_end);
+ 		
+ 	/* Do memory allocate and dma sync */
+-	i2s_mmap_alloc(size);
++	i2s_mmap_alloc(size,STREAM_PLAYBACK);
+ 
+ 	i2s_mmap_remap(vma, size);
+ 
+@@ -494,12 +504,30 @@ static int i2s_mmap(struct file *filp, struct vm_area_struct *vma)
+ 	return 0;
+ }
+ 
+-int i2s_mem_unmap(i2s_config_type* ptri2s_config)
++int i2s_mem_unmap(i2s_config_type* ptri2s_config,int dir)
+ {
+ 	u32 page_size;
+ 
+ 	page_size = I2S_PAGE_SIZE;
+-
++	if(STREAM_PLAYBACK == dir){
++		if(ptri2s_config->pMMAPBufPtr[0]){
++			printk("ummap MMAP[0]=0x%08X\n", (u32)ptri2s_config->pMMAPBufPtr[0]);
++			dma_unmap_single(NULL, i2s_mmap_addr[0], MAX_I2S_PAGE*page_size, DMA_BIDIRECTIONAL);
++			kfree(ptri2s_config->pMMAPBufPtr[0]);
++			ptri2s_config->pMMAPBufPtr[0] = NULL;
++		}
++		ptri2s_config->is_tx_mmap = 0;
++	}
++	else{
++		if(ptri2s_config->pMMAPBufPtr[MAX_I2S_PAGE]){
++			printk("ummap MMAP[%d]=0x%08X\n", MAX_I2S_PAGE, (u32)ptri2s_config->pMMAPBufPtr[MAX_I2S_PAGE]);
++			dma_unmap_single(NULL, i2s_mmap_addr[MAX_I2S_PAGE], MAX_I2S_PAGE*page_size, DMA_BIDIRECTIONAL);
++			kfree(ptri2s_config->pMMAPBufPtr[MAX_I2S_PAGE]);
++			ptri2s_config->pMMAPBufPtr[MAX_I2S_PAGE] = NULL;
++		}
++		ptri2s_config->is_rx_mmap = 0;
++	}
++#if 0
+ 	if(ptri2s_config->pMMAPBufPtr[0]&& (ptri2s_config->mmap_index != 0))
+ 	{	
+ 		printk("ummap MMAP[0]=0x%08X\n", (u32)ptri2s_config->pMMAPBufPtr[0]);
+@@ -515,7 +543,7 @@ int i2s_mem_unmap(i2s_config_type* ptri2s_config)
+ 	}
+ 
+ 	ptri2s_config->mmap_index = 0;
+-	
++#endif	
+ 	return 0;
+ }
+ 
+@@ -546,8 +574,8 @@ int i2s_param_init(i2s_config_type* ptri2s_config)
+ 	ptri2s_config->micboost = 0;
+ 	ptri2s_config->micin = 0;
+ 
+-	ptri2s_config->playbackIsBig = 0;
+-	ptri2s_config->captureIsBig = 0;
++	ptri2s_config->is_rx_mmap = 0;
++	ptri2s_config->is_tx_mmap = 0;
+ 
+ 	return 0;
+ }
+@@ -558,19 +586,12 @@ int i2s_txbuf_alloc(i2s_config_type* ptri2s_config)
+ 
+ 	for( i = 0 ; i < MAX_I2S_PAGE ; i ++ )
+         {
+-#if defined(CONFIG_I2S_MMAP)
+-		if(ptri2s_config->mmap_index == 0){
+-			ptri2s_config->pMMAPTxBufPtr[i] = ptri2s_config->pMMAPBufPtr[i];
+-			ptri2s_config->playbackIsBig = 0;
+-		}
+-		else{
+-			ptri2s_config->playbackIsBig = 1;
+-			ptri2s_config->pMMAPTxBufPtr[i] = ptri2s_config->pMMAPBufPtr[i+(ptri2s_config->mmap_index-MAX_I2S_PAGE)];
+-		}
+-#else
++			if(ptri2s_config->is_tx_mmap)
++				ptri2s_config->pMMAPTxBufPtr[i] = ptri2s_config->pMMAPBufPtr[i];
++			else{
+                 if(ptri2s_config->pMMAPTxBufPtr[i]==NULL)
+                 	ptri2s_config->pMMAPTxBufPtr[i] = kmalloc(I2S_PAGE_SIZE, GFP_KERNEL);
+-#endif
++			}
+ 		memset(ptri2s_config->pMMAPTxBufPtr[i], 0, I2S_PAGE_SIZE);
+ 	}
+ 
+@@ -583,19 +604,12 @@ int i2s_rxbuf_alloc(i2s_config_type* ptri2s_config)
+ 
+ 	for( i = 0 ; i < MAX_I2S_PAGE ; i ++ )
+         {
+-#if defined(CONFIG_I2S_MMAP)
+-			if(ptri2s_config->mmap_index == 0){
+-        		ptri2s_config->pMMAPRxBufPtr[i] = ptri2s_config->pMMAPBufPtr[i];
+-				ptri2s_config->captureIsBig = 0;
+-			}
++			if(ptri2s_config->is_rx_mmap)
++				ptri2s_config->pMMAPRxBufPtr[i] = ptri2s_config->pMMAPBufPtr[i+MAX_I2S_PAGE];
+ 			else{
+-				ptri2s_config->pMMAPRxBufPtr[i] = ptri2s_config->pMMAPBufPtr[i+(ptri2s_config->mmap_index-MAX_I2S_PAGE)];
+-				ptri2s_config->captureIsBig = 1;
++				if(ptri2s_config->pMMAPRxBufPtr[i]==NULL)
++					ptri2s_config->pMMAPRxBufPtr[i] = kmalloc(I2S_PAGE_SIZE, GFP_KERNEL);
+ 			}
+-#else
+-                if(ptri2s_config->pMMAPRxBufPtr[i]==NULL)
+-			ptri2s_config->pMMAPRxBufPtr[i] = kmalloc(I2S_PAGE_SIZE, GFP_KERNEL);
+-#endif
+ 		memset(ptri2s_config->pMMAPRxBufPtr[i], 0, I2S_PAGE_SIZE);
+         }
+ 
+@@ -664,12 +678,12 @@ int i2s_txbuf_free(i2s_config_type* ptri2s_config)
+ 	{
+ 		if(ptri2s_config->pMMAPTxBufPtr[i] != NULL)
+ 		{
+-#if defined(CONFIG_I2S_MMAP)
+-            ptri2s_config->pMMAPTxBufPtr[i] = NULL;
+-#else
+-			kfree(ptri2s_config->pMMAPTxBufPtr[i]);
+-			ptri2s_config->pMMAPTxBufPtr[i] = NULL;
+-#endif
++			if(ptri2s_config->is_tx_mmap)
++				ptri2s_config->pMMAPTxBufPtr[i] = NULL;
++			else{
++				kfree(ptri2s_config->pMMAPTxBufPtr[i]);
++				ptri2s_config->pMMAPTxBufPtr[i] = NULL;
++			}
+ 		}
+ 	}
+ 	return 0;
+@@ -683,12 +697,12 @@ int i2s_rxbuf_free(i2s_config_type* ptri2s_config)
+ 	{
+ 		if(ptri2s_config->pMMAPRxBufPtr[i] != NULL)
+ 		{
+-#if defined(CONFIG_I2S_MMAP)
+-            ptri2s_config->pMMAPRxBufPtr[i] = NULL;
+-#else
+-			kfree(ptri2s_config->pMMAPRxBufPtr[i]);
+-			ptri2s_config->pMMAPRxBufPtr[i] = NULL;
+-#endif
++			if(ptri2s_config->is_rx_mmap)
++				ptri2s_config->pMMAPRxBufPtr[i] = NULL;
++			else{
++				kfree(ptri2s_config->pMMAPRxBufPtr[i]);
++				ptri2s_config->pMMAPRxBufPtr[i] = NULL;
++			}
+ 		}
+ 	}
+ 	
+@@ -2103,24 +2117,24 @@ int i2s_dma_tx_transf_data(i2s_config_type* ptri2s_config, u32 dma_ch)
+ 	MSG(">>>>>>  tx_r_idx:%d\n",tx_r_idx);
+ 	if(dma_ch==GDMA_I2S_TX0)
+         {
+-#if defined(CONFIG_I2S_MMAP)
+-		dma_sync_single_for_device(NULL,  i2s_mmap_addr[tx_r_idx], I2S_PAGE_SIZE, DMA_TO_DEVICE);
++        	if(pi2s_config->is_tx_mmap){
++				dma_sync_single_for_device(NULL,  i2s_mmap_addr[tx_r_idx], I2S_PAGE_SIZE, DMA_TO_DEVICE);
+ #if defined(ARM_ARCH)
+-		GdmaI2sTx(i2s_mmap_addr[tx_r_idx], I2S_TX_FIFO_WREG_PHY, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
++				GdmaI2sTx(i2s_mmap_addr[tx_r_idx], I2S_TX_FIFO_WREG_PHY, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
+ #else
+-        GdmaI2sTx((u32)(pi2s_config->pMMAPTxBufPtr[tx_r_idx]), I2S_TX_FIFO_WREG, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
++				GdmaI2sTx((u32)(pi2s_config->pMMAPTxBufPtr[tx_r_idx]), I2S_TX_FIFO_WREG, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
+ #endif
+-
+-#else
+-                memcpy(pi2s_config->pPage0TxBuf8ptr,  pi2s_config->pMMAPTxBufPtr[tx_r_idx], I2S_PAGE_SIZE);
++			}
++			else{
++				memcpy(pi2s_config->pPage0TxBuf8ptr,  pi2s_config->pMMAPTxBufPtr[tx_r_idx], I2S_PAGE_SIZE);
+ #if defined(ARM_ARCH)
+-		GdmaI2sTx(i2s_txdma_addr0, I2S_TX_FIFO_WREG_PHY, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
++				GdmaI2sTx(i2s_txdma_addr0, I2S_TX_FIFO_WREG_PHY, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
+ #else
+-                GdmaI2sTx((u32)(pi2s_config->pPage0TxBuf8ptr), I2S_TX_FIFO_WREG, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
++				GdmaI2sTx((u32)(pi2s_config->pPage0TxBuf8ptr), I2S_TX_FIFO_WREG, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
+ #endif
+-#endif
+-                pi2s_config->dmach = GDMA_I2S_TX0;
+-				pi2s_config->tx_r_idx = (pi2s_config->tx_r_idx+1)%MAX_I2S_PAGE;
++			}
++            pi2s_config->dmach = GDMA_I2S_TX0;
++			pi2s_config->tx_r_idx = (pi2s_config->tx_r_idx+1)%MAX_I2S_PAGE;
+ 	}
+         else
+         {
+@@ -2188,7 +2202,7 @@ int i2s_dma_rx_transf_data(i2s_config_type* ptri2s_config, u32 dma_ch)
+         {
+                 
+ #ifdef CONFIG_I2S_MMAP
+-                dma_sync_single_for_device(NULL,  i2s_mmap_addr[rx_w_idx+(pi2s_config->mmap_index-MAX_I2S_PAGE)], I2S_PAGE_SIZE, DMA_FROM_DEVICE);
++         dma_sync_single_for_device(NULL,  i2s_mmap_addr[rx_w_idx+(pi2s_config->mmap_index-MAX_I2S_PAGE)], I2S_PAGE_SIZE, DMA_FROM_DEVICE);
+ #if defined(ARM_ARCH)
+ 		GdmaI2sRx(I2S_RX_FIFO_RREG_PHY, (u32)i2s_mmap_addr[rx_w_idx+(pi2s_config->mmap_index-MAX_I2S_PAGE)], 0, I2S_PAGE_SIZE, i2s_dma_rx_handler, i2s_dma_rx_unmask_handler);
+ #else
+@@ -3331,13 +3345,13 @@ char* i2s_memPool_Alloc(i2s_config_type* ptri2s_config,int dir)
+                 return NULL;
+         if(dir == STREAM_PLAYBACK){
+ #if defined(CONFIG_I2S_MMAP)
+-                i2s_mmap_alloc(I2S_TOTAL_PAGE_SIZE);
++                i2s_mmap_alloc(I2S_TOTAL_PAGE_SIZE,dir);
+ #endif
+                 i2s_txbuf_alloc(ptri2s_config);
+ 		return ptri2s_config->pMMAPTxBufPtr[0];
+         }else{
+ #if defined(CONFIG_I2S_MMAP)
+-                i2s_mmap_alloc(I2S_TOTAL_PAGE_SIZE);
++                i2s_mmap_alloc(I2S_TOTAL_PAGE_SIZE,dir);
+ #endif
+ 		i2s_rxbuf_alloc(ptri2s_config);	
+ 		return ptri2s_config->pMMAPRxBufPtr[0];
+@@ -3351,12 +3365,12 @@ void i2s_memPool_free(i2s_config_type* ptri2s_config,int dir)
+                 return;
+         if(dir == STREAM_PLAYBACK){
+ #if defined(CONFIG_I2S_MMAP)
+-		i2s_mem_unmap(ptri2s_config);
++		i2s_mem_unmap(ptri2s_config,dir);
+ #endif
+ 		i2s_txbuf_free(ptri2s_config);
+         }else{
+ #if defined(CONFIG_I2S_MMAP)
+-		i2s_mem_unmap(ptri2s_config);
++		i2s_mem_unmap(ptri2s_config,dir);
+ #endif
+ 		i2s_rxbuf_free(ptri2s_config);
+         }
+diff --git a/sound/soc/mtk/i2s_ctrl.h b/sound/soc/mtk/i2s_ctrl.h
+index 1d0ec46..f9b481a 100644
+--- a/sound/soc/mtk/i2s_ctrl.h
++++ b/sound/soc/mtk/i2s_ctrl.h
+@@ -58,7 +58,7 @@
+ #define MT7628_ASIC_BOARD
+ #endif
+ 
+-//#define I2S_DEBUG_PRN
++#define I2S_DEBUG_PRN
+ #ifdef I2S_DEBUG_PRN
+ #define MSG(fmt, args...) printk("I2S: " fmt, ## args)
+ #else
+@@ -213,7 +213,7 @@
+ /* Constant definition */
+ #define NFF_THRES		4
+ //#define I2S_PAGE_SIZE		3072//(3*4096)//(1152*2*2*2)
+-#define I2S_PAGE_SIZE		4096*2//(3*4096)//(1152*2*2*2)
++#define I2S_PAGE_SIZE		6144//(3*4096)//(1152*2*2*2)
+ 
+ #define I2S_MIN_PAGE_SIZE	4096
+ #define MAX_I2S_PAGE		8
+@@ -346,8 +346,8 @@ typedef struct i2s_config_t
+ 	int enLable;
+ 	int micboost;
+ 	int micin;
+-	int playbackIsBig;
+-	int captureIsBig;
++	int is_tx_mmap;
++	int is_rx_mmap;
+ 	
+ 	/* parameters fo ALSA */
+ 	int bALSAEnable;
+@@ -432,7 +432,7 @@ typedef struct i2s_config_t
+ 
+ 
+ void i2s_gen_test_pattern(void);
+-int i2s_mem_unmap(i2s_config_type* ptri2s_config);
++int i2s_mem_unmap(i2s_config_type* ptri2s_config,int dir);
+ int i2s_param_init(i2s_config_type* ptri2s_config);
+ int i2s_txbuf_alloc(i2s_config_type* ptri2s_config);
+ int i2s_rxbuf_alloc(i2s_config_type* ptri2s_config);
+diff --git a/sound/soc/mtk/mt76xx_i2s.c b/sound/soc/mtk/mt76xx_i2s.c
+index 1b32607..75cd6c8 100644
+--- a/sound/soc/mtk/mt76xx_i2s.c
++++ b/sound/soc/mtk/mt76xx_i2s.c
+@@ -190,7 +190,8 @@ static int mt76xx_i2s_hw_params(struct snd_pcm_substream *substream,\
+ 	//unsigned long data;
+ 	struct snd_pcm_runtime *runtime = substream->runtime;
+ 	i2s_config_type* rtd = runtime->private_data;
+-
++	unsigned int  period_size = params_period_size(params);
++	MSG("period_size:   %d,runtime->buffer_size: %d\n", period_size,runtime->buffer_size);
+ 	//printk("******* %s *******\n", __func__);
+ 	switch(params_rate(params)){
+ 	case 8000:
+@@ -213,12 +214,13 @@ static int mt76xx_i2s_hw_params(struct snd_pcm_substream *substream,\
+ 		//MSG("audio sampling rate %u should be %d ~ %d Hz\n", (u32)params_rate(params), MIN_SRATE_HZ, MAX_SRATE_HZ);
+ 		break;
+ 	}
+-	if(srate){
++	if(srate){ 
+ 		if((rtd->bRxDMAEnable != GDMA_I2S_EN) && (rtd->bTxDMAEnable != GDMA_I2S_EN)){
+ 			rtd->srate = srate;
+ 			MSG("set audio sampling rate to %d Hz\n", rtd->srate);
+ 		}
+ 	}
++	
+ 
+ 	return 0;
+ }
+diff --git a/sound/soc/mtk/mt76xx_pcm.c b/sound/soc/mtk/mt76xx_pcm.c
+index 2e60266..a6e84b7 100644
+--- a/sound/soc/mtk/mt76xx_pcm.c
++++ b/sound/soc/mtk/mt76xx_pcm.c
+@@ -232,9 +232,15 @@ static int mt76xx_pcm_mmap(struct snd_pcm_substream *substream, struct vm_area_s
+ {
+         int ret;
+         unsigned long size;
+-
++		i2s_config_type* rtd = (i2s_config_type*)substream->runtime->private_data;
++		
++		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
++			rtd->is_tx_mmap = 1;
++		else
++			rtd->is_rx_mmap = 1;
++	
+         size = vma->vm_end - vma->vm_start;
+-        //MSG("******* %s: size :%lx end:%lx start:%lx *******\n", __func__,size,vma->vm_end,vma->vm_start);
++        MSG("******* %s: size :%lx end:%lx start:%lx *******\n", __func__,size,vma->vm_end,vma->vm_start);
+         ret = i2s_mmap_remap(vma, size);
+ 
+         return ret;
+@@ -278,11 +284,15 @@ static int mt76xx_pcm_prepare(struct snd_pcm_substream *substream)
+ static int mt76xx_pcm_hw_params(struct snd_pcm_substream *substream,
+ 				 struct snd_pcm_hw_params *hw_params)
+ {
+-	/*struct snd_pcm_runtime *runtime = substream->runtime;
++	//struct snd_pcm_runtime *runtime = substream->runtime;
++	/*
+ 	i2s_config_type *rtd = (i2s_config_type*)runtime->private_data;
+ 	*/
+ 	int ret,i;
+ 	ret = i = 0;
++	
++	
++
+ 
+ 	//MSG("******* %s *******\n", __func__);
+ 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
+@@ -403,6 +413,11 @@ static int mt76xx_pcm_open(struct snd_pcm_substream *substream)
+ 						SNDRV_PCM_HW_PARAM_PERIODS);
+ 	if (ret < 0)
+ 		goto out;
++	MSG("period_bytes_min: %d, period_bytes_max: %d\n",runtime->hw.period_bytes_min,runtime->hw.period_bytes_max);
++	MSG("buffer_bytes_max: %d\n",runtime->hw.buffer_bytes_max);
++	ret = snd_pcm_hw_constraint_minmax(runtime,SNDRV_PCM_HW_PARAM_BUFFER_SIZE,runtime->hw.period_bytes_min*2,runtime->hw.period_bytes_min*2);
++	if (ret < 0)
++		goto out;
+ 
+ #if 1
+ 	if(stream == SNDRV_PCM_STREAM_PLAYBACK){
+-- 
+1.9.1
+

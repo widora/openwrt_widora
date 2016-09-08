@@ -1,0 +1,25 @@
+From 880f3a41515252aae7aa6beea51b193cb4518183 Mon Sep 17 00:00:00 2001
+From: Pillar Zuo <zuobaozhu@gmail.com>
+Date: Wed, 7 Sep 2016 19:52:05 +0800
+Subject: [PATCH 5/7] update mt76xx_i2s
+
+Signed-off-by: Pillar Zuo <zuobaozhu@gmail.com>
+---
+ sound/soc/mtk/mt76xx_i2s.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/sound/soc/mtk/mt76xx_i2s.c b/sound/soc/mtk/mt76xx_i2s.c
+index 41627e8..3e93db3 100644
+--- a/sound/soc/mtk/mt76xx_i2s.c
++++ b/sound/soc/mtk/mt76xx_i2s.c
+@@ -175,6 +175,7 @@ static int  mt76xx_i2s_startup(struct snd_pcm_substream *substream,
+     		if(!pi2s_config)
+     			return -1;
+     		i2s_reset_config(pi2s_config);
++			
+     }
+ 	substream->runtime->private_data = pi2s_config;
+ 	return 0;
+-- 
+1.9.1
+

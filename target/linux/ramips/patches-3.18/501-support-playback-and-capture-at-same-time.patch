@@ -1,0 +1,645 @@
+From 01a0c693eef47224fe3198d43de8e6c3d26b6526 Mon Sep 17 00:00:00 2001
+From: Pillar Zuo <zuobaozhu@gmail.com>
+Date: Mon, 18 Jul 2016 11:06:39 +0800
+Subject: [PATCH 1/7] support playback and capture at same time!
+
+Signed-off-by: Pillar Zuo <zuobaozhu@gmail.com>
+---
+ sound/soc/mtk/i2s_ctrl.c   | 140 +++++++++++++++++++++++++++------------------
+ sound/soc/mtk/i2s_ctrl.h   |   6 +-
+ sound/soc/mtk/mt76xx_i2s.c |   5 +-
+ sound/soc/mtk/mt76xx_pcm.c |  63 ++++++++++----------
+ 4 files changed, 128 insertions(+), 86 deletions(-)
+
+diff --git a/sound/soc/mtk/i2s_ctrl.c b/sound/soc/mtk/i2s_ctrl.c
+index 7304a0e..7557d09 100644
+--- a/sound/soc/mtk/i2s_ctrl.c
++++ b/sound/soc/mtk/i2s_ctrl.c
+@@ -404,14 +404,14 @@ int i2s_mmap_alloc(unsigned long size)
+ 		MSG("mmap_index=%d\n", pi2s_config->mmap_index);
+ 
+ 		first_index = pi2s_config->mmap_index;
+-	pi2s_config->pMMAPBufPtr[pi2s_config->mmap_index] = kmalloc(size, GFP_DMA);
+-	i2s_mmap_addr[pi2s_config->mmap_index] = (dma_addr_t)dma_map_single(NULL, pi2s_config->pMMAPBufPtr[pi2s_config->mmap_index], size, DMA_BIDIRECTIONAL);
++		pi2s_config->pMMAPBufPtr[pi2s_config->mmap_index] = kmalloc(size, GFP_DMA);
++		i2s_mmap_addr[pi2s_config->mmap_index] = (dma_addr_t)dma_map_single(NULL, pi2s_config->pMMAPBufPtr[pi2s_config->mmap_index], size, DMA_BIDIRECTIONAL);
+ 	
+-	if( pi2s_config->pMMAPBufPtr[pi2s_config->mmap_index] == NULL ) 
+-	{
+-		MSG("i2s_mmap failed\n");
+-		return -1;
+-	}
++		if( pi2s_config->pMMAPBufPtr[pi2s_config->mmap_index] == NULL ) 
++		{
++			MSG("i2s_mmap failed\n");
++			return -1;
++		}
+ 	}
+ 	else
+ 	{
+@@ -419,7 +419,7 @@ int i2s_mmap_alloc(unsigned long size)
+ 		return -1;	
+ 	}
+ 	
+-	_printk("MMAP[%d]=0x%08X, i2s_mmap_addr[%d]=0x%08x\n",
++	MSG("MMAP[%d]=0x%08X, i2s_mmap_addr[%d]=0x%08x\n",
+ 		pi2s_config->mmap_index, (u32)pi2s_config->pMMAPBufPtr[pi2s_config->mmap_index], 
+                 pi2s_config->mmap_index, i2s_mmap_addr[pi2s_config->mmap_index]);
+ 	
+@@ -431,7 +431,7 @@ int i2s_mmap_alloc(unsigned long size)
+ 		i2s_mmap_addr[pi2s_config->mmap_index] = i2s_mmap_addr[first_index] + i*page_size;
+ 		pi2s_config->pMMAPBufPtr[pi2s_config->mmap_index] = pi2s_config->pMMAPBufPtr[first_index] + i*page_size;
+ 
+-		_printk("MMAP[%d]=0x%08X, i2s_mmap_addr[%d]=0x%08x\n",pi2s_config->mmap_index, (u32)pi2s_config->pMMAPBufPtr[pi2s_config->mmap_index], pi2s_config->mmap_index, i2s_mmap_addr[pi2s_config->mmap_index]);
++		MSG("MMAP[%d]=0x%08X, i2s_mmap_addr[%d]=0x%08x\n",pi2s_config->mmap_index, (u32)pi2s_config->pMMAPBufPtr[pi2s_config->mmap_index], pi2s_config->mmap_index, i2s_mmap_addr[pi2s_config->mmap_index]);
+ 	
+ 		/* Notice: The last mmap_index's value should be MAX_I2S_PAGE or MAX_I2S_PAGE*2 */
+ 		pi2s_config->mmap_index++;
+@@ -447,6 +447,7 @@ int i2s_mmap_remap(struct vm_area_struct *vma, unsigned long size)
+ 	if((pi2s_config->pMMAPBufPtr[0]!=NULL) && (pi2s_config->mmap_index == MAX_I2S_PAGE))
+ 	{
+ 		MSG("i2s_mmap_remap:0\n");
++		//move left 12bit, why?
+ 		nRet = remap_pfn_range(vma, vma->vm_start, virt_to_phys((void *)pi2s_config->pMMAPBufPtr[0]) >> PAGE_SHIFT,  size, vma->vm_page_prot);
+ 
+ 		if( nRet != 0 )
+@@ -478,8 +479,10 @@ static int i2s_mmap(struct file *filp, struct vm_area_struct *vma)
+ 	_printk("page_size=%d, ksize=%lu\n", I2S_PAGE_SIZE, size);
+ 
+ 	if((pi2s_config->pMMAPBufPtr[0]==NULL)&&(pi2s_config->mmap_index!=0))
+-		pi2s_config->mmap_index = 0;
+-		
++		{
++			MSG(">>>>>>pi2s_config->mmap_index = 0\n");
++			pi2s_config->mmap_index = 0;
++		}
+ 	_printk("%s: vm_start=%08X,vm_end=%08X\n", __func__, (u32)vma->vm_start, (u32)vma->vm_end);
+ 		
+ 	/* Do memory allocate and dma sync */
+@@ -497,16 +500,16 @@ int i2s_mem_unmap(i2s_config_type* ptri2s_config)
+ 
+ 	page_size = I2S_PAGE_SIZE;
+ 
+-	if(ptri2s_config->pMMAPBufPtr[0])
++	if(ptri2s_config->pMMAPBufPtr[0]&& (ptri2s_config->mmap_index != 0))
+ 	{	
+-		_printk("ummap MMAP[0]=0x%08X\n", (u32)ptri2s_config->pMMAPBufPtr[0]);
++		printk("ummap MMAP[0]=0x%08X\n", (u32)ptri2s_config->pMMAPBufPtr[0]);
+ 		dma_unmap_single(NULL, i2s_mmap_addr[0], MAX_I2S_PAGE*page_size, DMA_BIDIRECTIONAL);
+ 		kfree(ptri2s_config->pMMAPBufPtr[0]);
+ 	}
+ 
+-	if(ptri2s_config->pMMAPBufPtr[MAX_I2S_PAGE])
++	if(ptri2s_config->pMMAPBufPtr[MAX_I2S_PAGE]&& (ptri2s_config->mmap_index != 0))
+ 	{
+-		_printk("ummap MMAP[%d]=0x%08X\n", MAX_I2S_PAGE, (u32)ptri2s_config->pMMAPBufPtr[MAX_I2S_PAGE]);
++		printk("ummap MMAP[%d]=0x%08X\n", MAX_I2S_PAGE, (u32)ptri2s_config->pMMAPBufPtr[MAX_I2S_PAGE]);
+ 		dma_unmap_single(NULL, i2s_mmap_addr[MAX_I2S_PAGE], MAX_I2S_PAGE*page_size, DMA_BIDIRECTIONAL);
+ 		kfree(ptri2s_config->pMMAPBufPtr[MAX_I2S_PAGE]);
+ 	}
+@@ -543,6 +546,9 @@ int i2s_param_init(i2s_config_type* ptri2s_config)
+ 	ptri2s_config->micboost = 0;
+ 	ptri2s_config->micin = 0;
+ 
++	ptri2s_config->playbackIsBig = 0;
++	ptri2s_config->captureIsBig = 0;
++
+ 	return 0;
+ }
+ 
+@@ -553,7 +559,14 @@ int i2s_txbuf_alloc(i2s_config_type* ptri2s_config)
+ 	for( i = 0 ; i < MAX_I2S_PAGE ; i ++ )
+         {
+ #if defined(CONFIG_I2S_MMAP)
+-		ptri2s_config->pMMAPTxBufPtr[i] = ptri2s_config->pMMAPBufPtr[i];
++		if(ptri2s_config->mmap_index == 0){
++			ptri2s_config->pMMAPTxBufPtr[i] = ptri2s_config->pMMAPBufPtr[i];
++			ptri2s_config->playbackIsBig = 0;
++		}
++		else{
++			ptri2s_config->playbackIsBig = 1;
++			ptri2s_config->pMMAPTxBufPtr[i] = ptri2s_config->pMMAPBufPtr[i+(ptri2s_config->mmap_index-MAX_I2S_PAGE)];
++		}
+ #else
+                 if(ptri2s_config->pMMAPTxBufPtr[i]==NULL)
+                 	ptri2s_config->pMMAPTxBufPtr[i] = kmalloc(I2S_PAGE_SIZE, GFP_KERNEL);
+@@ -571,7 +584,14 @@ int i2s_rxbuf_alloc(i2s_config_type* ptri2s_config)
+ 	for( i = 0 ; i < MAX_I2S_PAGE ; i ++ )
+         {
+ #if defined(CONFIG_I2S_MMAP)
+-        	ptri2s_config->pMMAPRxBufPtr[i] = ptri2s_config->pMMAPBufPtr[i+(ptri2s_config->mmap_index-MAX_I2S_PAGE)];
++			if(ptri2s_config->mmap_index == 0){
++        		ptri2s_config->pMMAPRxBufPtr[i] = ptri2s_config->pMMAPBufPtr[i];
++				ptri2s_config->captureIsBig = 0;
++			}
++			else{
++				ptri2s_config->pMMAPRxBufPtr[i] = ptri2s_config->pMMAPBufPtr[i+(ptri2s_config->mmap_index-MAX_I2S_PAGE)];
++				ptri2s_config->captureIsBig = 1;
++			}
+ #else
+                 if(ptri2s_config->pMMAPRxBufPtr[i]==NULL)
+ 			ptri2s_config->pMMAPRxBufPtr[i] = kmalloc(I2S_PAGE_SIZE, GFP_KERNEL);
+@@ -645,7 +665,7 @@ int i2s_txbuf_free(i2s_config_type* ptri2s_config)
+ 		if(ptri2s_config->pMMAPTxBufPtr[i] != NULL)
+ 		{
+ #if defined(CONFIG_I2S_MMAP)
+-                        ptri2s_config->pMMAPTxBufPtr[i] = NULL;
++            ptri2s_config->pMMAPTxBufPtr[i] = NULL;
+ #else
+ 			kfree(ptri2s_config->pMMAPTxBufPtr[i]);
+ 			ptri2s_config->pMMAPTxBufPtr[i] = NULL;
+@@ -664,7 +684,7 @@ int i2s_rxbuf_free(i2s_config_type* ptri2s_config)
+ 		if(ptri2s_config->pMMAPRxBufPtr[i] != NULL)
+ 		{
+ #if defined(CONFIG_I2S_MMAP)
+-                        ptri2s_config->pMMAPRxBufPtr[i] = NULL;
++            ptri2s_config->pMMAPRxBufPtr[i] = NULL;
+ #else
+ 			kfree(ptri2s_config->pMMAPRxBufPtr[i]);
+ 			ptri2s_config->pMMAPRxBufPtr[i] = NULL;
+@@ -2075,12 +2095,12 @@ int i2s_rx_disable(i2s_config_type* ptri2s_config)
+ int i2s_dma_tx_transf_data(i2s_config_type* ptri2s_config, u32 dma_ch)
+ {
+ 	int tx_r_idx;
+- 
+-	if ((pi2s_config->bALSAEnable==1) && (pi2s_config->bALSAMMAPEnable==1))
++
++	if((pi2s_config->bALSAEnable==1) && (pi2s_config->bALSAMMAPEnable==1)&&(pi2s_config->mmap_index <= MAX_I2S_PAGE))
+ 		tx_r_idx = (pi2s_config->tx_r_idx + ALSA_MMAP_IDX_SHIFT)%MAX_I2S_PAGE;
+ 	else
+ 		tx_r_idx = pi2s_config->tx_r_idx;
+-
++	MSG(">>>>>>  tx_r_idx:%d\n",tx_r_idx);
+ 	if(dma_ch==GDMA_I2S_TX0)
+         {
+ #if defined(CONFIG_I2S_MMAP)
+@@ -2088,8 +2108,9 @@ int i2s_dma_tx_transf_data(i2s_config_type* ptri2s_config, u32 dma_ch)
+ #if defined(ARM_ARCH)
+ 		GdmaI2sTx(i2s_mmap_addr[tx_r_idx], I2S_TX_FIFO_WREG_PHY, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
+ #else
+-                GdmaI2sTx((u32)(pi2s_config->pMMAPTxBufPtr[tx_r_idx]), I2S_TX_FIFO_WREG, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
++        GdmaI2sTx((u32)(pi2s_config->pMMAPTxBufPtr[tx_r_idx]), I2S_TX_FIFO_WREG, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
+ #endif
++
+ #else
+                 memcpy(pi2s_config->pPage0TxBuf8ptr,  pi2s_config->pMMAPTxBufPtr[tx_r_idx], I2S_PAGE_SIZE);
+ #if defined(ARM_ARCH)
+@@ -2099,7 +2120,7 @@ int i2s_dma_tx_transf_data(i2s_config_type* ptri2s_config, u32 dma_ch)
+ #endif
+ #endif
+                 pi2s_config->dmach = GDMA_I2S_TX0;
+-                pi2s_config->tx_r_idx = (pi2s_config->tx_r_idx+1)%MAX_I2S_PAGE;
++				pi2s_config->tx_r_idx = (pi2s_config->tx_r_idx+1)%MAX_I2S_PAGE;
+ 	}
+         else
+         {
+@@ -2108,7 +2129,7 @@ int i2s_dma_tx_transf_data(i2s_config_type* ptri2s_config, u32 dma_ch)
+ #if defined(ARM_ARCH)
+ 		GdmaI2sTx(i2s_mmap_addr[tx_r_idx], I2S_TX_FIFO_WREG_PHY, 1, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
+ #else
+-                GdmaI2sTx((u32)(pi2s_config->pMMAPTxBufPtr[tx_r_idx]), I2S_TX_FIFO_WREG, 1, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
++        GdmaI2sTx((u32)(pi2s_config->pMMAPTxBufPtr[tx_r_idx]), I2S_TX_FIFO_WREG, 1, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
+ #endif
+ #else
+                 memcpy(pi2s_config->pPage1TxBuf8ptr,  pi2s_config->pMMAPTxBufPtr[tx_r_idx], I2S_PAGE_SIZE);
+@@ -2162,7 +2183,7 @@ int i2s_dma_rx_transf_data(i2s_config_type* ptri2s_config, u32 dma_ch)
+ 		rx_w_idx = (pi2s_config->rx_w_idx+ALSA_MMAP_IDX_SHIFT)%MAX_I2S_PAGE;
+ 	else
+ 		rx_w_idx = (pi2s_config->rx_w_idx)%MAX_I2S_PAGE;
+-
++	MSG("=========== rx_w_idx:%d\n",rx_w_idx+(pi2s_config->mmap_index-MAX_I2S_PAGE));
+ 	if(dma_ch==GDMA_I2S_RX0)
+         {
+                 
+@@ -2171,7 +2192,7 @@ int i2s_dma_rx_transf_data(i2s_config_type* ptri2s_config, u32 dma_ch)
+ #if defined(ARM_ARCH)
+ 		GdmaI2sRx(I2S_RX_FIFO_RREG_PHY, (u32)i2s_mmap_addr[rx_w_idx+(pi2s_config->mmap_index-MAX_I2S_PAGE)], 0, I2S_PAGE_SIZE, i2s_dma_rx_handler, i2s_dma_rx_unmask_handler);
+ #else
+-                GdmaI2sRx(I2S_RX_FIFO_RREG, (u32)(pi2s_config->pMMAPRxBufPtr[rx_w_idx]), 0, I2S_PAGE_SIZE, i2s_dma_rx_handler, i2s_dma_rx_unmask_handler);
++        GdmaI2sRx(I2S_RX_FIFO_RREG, (u32)(pi2s_config->pMMAPRxBufPtr[rx_w_idx]), 0, I2S_PAGE_SIZE, i2s_dma_rx_handler, i2s_dma_rx_unmask_handler);
+ #endif
+ #else
+                 memcpy(pi2s_config->pMMAPRxBufPtr[rx_w_idx], pi2s_config->pPage0RxBuf8ptr, I2S_PAGE_SIZE);
+@@ -2220,7 +2241,7 @@ int i2s_dma_rx_transf_zero(i2s_config_type* ptri2s_config, u32 dma_ch)
+ #if defined(ARM_ARCH)
+ 		GdmaI2sRx(I2S_RX_FIFO_RREG_PHY, i2s_rxdma_addr0, 0, I2S_PAGE_SIZE, i2s_dma_rx_handler, i2s_dma_rx_unmask_handler);
+ #else
+-        	GdmaI2sRx(I2S_RX_FIFO_RREG, (u32)pi2s_config->pPage0RxBuf8ptr, 0, I2S_PAGE_SIZE, i2s_dma_rx_handler, i2s_dma_rx_unmask_handler);
++          GdmaI2sRx(I2S_RX_FIFO_RREG, (u32)pi2s_config->pPage0RxBuf8ptr, 0, I2S_PAGE_SIZE, i2s_dma_rx_handler, i2s_dma_rx_unmask_handler);
+ #endif
+         }
+         else
+@@ -2229,7 +2250,7 @@ int i2s_dma_rx_transf_zero(i2s_config_type* ptri2s_config, u32 dma_ch)
+ #if defined(ARM_ARCH)
+ 		GdmaI2sRx(I2S_RX_FIFO_RREG_PHY, i2s_rxdma_addr1, 1, I2S_PAGE_SIZE, i2s_dma_rx_handler, i2s_dma_rx_unmask_handler);
+ #else
+-                GdmaI2sRx(I2S_RX_FIFO_RREG, (u32)pi2s_config->pPage1RxBuf8ptr, 1, I2S_PAGE_SIZE, i2s_dma_rx_handler, i2s_dma_rx_unmask_handler);
++         GdmaI2sRx(I2S_RX_FIFO_RREG, (u32)pi2s_config->pPage1RxBuf8ptr, 1, I2S_PAGE_SIZE, i2s_dma_rx_handler, i2s_dma_rx_unmask_handler);
+ #endif
+         }
+ 	return 0;
+@@ -2238,6 +2259,7 @@ int i2s_dma_rx_transf_zero(i2s_config_type* ptri2s_config, u32 dma_ch)
+ void i2s_dma_tx_handler(u32 dma_ch)
+ {
+ 	pi2s_config->enLable = 1; /* TX:enLabel=1; RX:enLabel=2 */
++	//printk("******* %s *******\n", __func__);
+ 
+ 	if(pi2s_config->bTxDMAEnable==0) 
+ 	{
+@@ -2273,25 +2295,25 @@ void i2s_dma_tx_handler(u32 dma_ch)
+ 		{
+ 			if(!pi2s_config->bTrigger[STREAM_PLAYBACK]){
+ 				//_printk("trigger stop: rIdx:%d widx:%d\n", pi2s_config->tx_r_idx,pi2s_config->tx_w_idx);
+-                                i2s_dma_tx_transf_zero(pi2s_config, dma_ch);
+-                                if(pi2s_config->bPreTrigger[STREAM_PLAYBACK]){
+-                                        /* mtk04880 commented:
+-                                         * for corner case, there are cases which ALSA Trigger stop before disabling DMA.
+-                                         * For which case, it needs to keep call snd_pcm_elapased to keep ALSA hw ptr updating.
+-                                         * It is so called post stop handlment.
+-                                         */
+-                                        //_printk("post-stop\n");
+-                                        goto EXIT;
+-                                }
+-                                else{
+-                                        //_printk("pre-stop\n");
+-                                        wake_up_interruptible(&(pi2s_config->i2s_tx_qh));
+-                                        return;
+-                                }
+-                        }
+-                        else{
+-                                if(!pi2s_config->bPreTrigger[STREAM_PLAYBACK])
+-                                        pi2s_config->bPreTrigger[STREAM_PLAYBACK] = 1;
++                i2s_dma_tx_transf_zero(pi2s_config, dma_ch);
++                if(pi2s_config->bPreTrigger[STREAM_PLAYBACK]){
++                    /* mtk04880 commented:
++                     * for corner case, there are cases which ALSA Trigger stop before disabling DMA.
++                     * For which case, it needs to keep call snd_pcm_elapased to keep ALSA hw ptr updating.
++                     * It is so called post stop handlment.
++                     */
++                    //_printk("post-stop\n");
++                    goto EXIT;
++                }
++                else{
++                    //_printk("pre-stop\n");
++                    wake_up_interruptible(&(pi2s_config->i2s_tx_qh));
++                    return;
++                }
++             }
++            else{
++                    if(!pi2s_config->bPreTrigger[STREAM_PLAYBACK])
++                            pi2s_config->bPreTrigger[STREAM_PLAYBACK] = 1;
+ 
+ 			}
+ 		}	
+@@ -2346,6 +2368,7 @@ EXIT:
+ void i2s_dma_rx_handler(u32 dma_ch)
+ {
+ 	pi2s_config->enLable = 2; /* TX:enLabel=1; RX:enLabel=2 */
++	//printk("******* %s *******\n", __func__);
+ #if defined(CONFIG_I2S_TXRX)
+ 	if(pi2s_config->rx_isr_cnt==0)
+ 	{
+@@ -2376,10 +2399,10 @@ void i2s_dma_rx_handler(u32 dma_ch)
+ 	{
+ 		 if(pi2s_config->dmaStat[STREAM_CAPTURE]){
+ 			if(!pi2s_config->bTrigger[STREAM_CAPTURE]){
+-                                MSG("trigger stop: rIdx:%d widx:%d\n", pi2s_config->rx_r_idx,pi2s_config->rx_w_idx);
+-				i2s_dma_rx_transf_zero(pi2s_config, dma_ch);
+-                                wake_up_interruptible(&(pi2s_config->i2s_rx_qh));
+-                                return;
++                    MSG("trigger stop: rIdx:%d widx:%d\n", pi2s_config->rx_r_idx,pi2s_config->rx_w_idx);
++					i2s_dma_rx_transf_zero(pi2s_config, dma_ch);
++                    wake_up_interruptible(&(pi2s_config->i2s_rx_qh));
++                    return;
+ 			}
+ 		 }
+ 	}
+@@ -2560,6 +2583,7 @@ void i2s_tx_task(unsigned long pData)
+ {
+ 	unsigned long flags;
+ 	spin_lock_irqsave(&pi2s_config->lock, flags);
++	MSG("******* %s *******\n", __func__);
+ 	//if (pi2s_config->bTxDMAEnable!=0)
+ 	{	
+ 		if (pi2s_config->tx_unmask_ch!=0)
+@@ -2584,6 +2608,7 @@ void i2s_rx_task(unsigned long pData)
+ {
+ 	unsigned long flags;
+ 	spin_lock_irqsave(&pi2s_config->lock, flags);
++	MSG("******* %s *******\n", __func__);
+ 	//if (pi2s_config->bRxDMAEnable!=0)
+ 	{	
+ 		if (pi2s_config->rx_unmask_ch!=0)
+@@ -2640,12 +2665,16 @@ void i2s_dma_mask_handler(u32 dma_ch)
+ 
+ void i2s_dma_tx_init(i2s_config_type* ptri2s_config)
+ {
++	MSG("******* %s *******\n", __func__);
++
+ 	memset(pi2s_config->pPage0TxBuf8ptr, 0, I2S_PAGE_SIZE);
+ 	memset(pi2s_config->pPage1TxBuf8ptr, 0, I2S_PAGE_SIZE);
+ #if defined(ARM_ARCH)
+ 	GdmaI2sTx(i2s_txdma_addr0, I2S_TX_FIFO_WREG_PHY, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
+ 	GdmaI2sTx(i2s_txdma_addr1, I2S_TX_FIFO_WREG_PHY, 1, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
+ #else
++	//finish dma exec i2s_dma_tx_handler func
++	//start dma exec i2s_dma_tx_unmask_handler func
+ 	GdmaI2sTx((u32)ptri2s_config->pPage0TxBuf8ptr, I2S_FIFO_WREG, 0, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
+ 	GdmaI2sTx((u32)ptri2s_config->pPage1TxBuf8ptr, I2S_FIFO_WREG, 1, I2S_PAGE_SIZE, i2s_dma_tx_handler, i2s_dma_tx_unmask_handler);
+ #endif
+@@ -2655,6 +2684,8 @@ void i2s_dma_tx_init(i2s_config_type* ptri2s_config)
+ 
+ void i2s_dma_rx_init(i2s_config_type* ptri2s_config)
+ {
++	MSG("******* %s *******\n", __func__);
++
+ 	memset(pi2s_config->pPage0RxBuf8ptr, 0, I2S_PAGE_SIZE);
+ 	memset(pi2s_config->pPage1RxBuf8ptr, 0, I2S_PAGE_SIZE);
+ 
+@@ -2686,7 +2717,6 @@ void i2s_dma_tx_end_handle(i2s_config_type* ptri2s_config)
+ 		_printk("case3: w=%d, r=%d, end=%d\n", ptri2s_config->tx_w_idx, ptri2s_config->tx_r_idx, ptri2s_config->end_cnt);
+ 		
+ 	}
+-
+ 	if (ptri2s_config->end_cnt > 0)
+ 	{
+ 		interruptible_sleep_on(&(ptri2s_config->i2s_tx_qh));
+@@ -3040,12 +3070,12 @@ int i2s_ioctl (struct inode *inode, struct file *filp, unsigned int cmd, unsigne
+ #if defined(CONFIG_I2S_WM8960)||defined(CONFIG_I2S_WM8750)||defined(CONFIG_I2S_WM8751)
+ 		audiohw_set_lineout_vol(1, ptri2s_config->txvol, ptri2s_config->txvol);
+ #endif
+-		GdmaUnMaskChannel(GDMA_I2S_TX0);
++		//GdmaUnMaskChannel(GDMA_I2S_TX0);
+ 
+ 		i2s_tx_enable(ptri2s_config);
+ 	
+ 		/* Kick off dma channel */	
+-		//GdmaUnMaskChannel(GDMA_I2S_TX0);
++		GdmaUnMaskChannel(GDMA_I2S_TX0);
+ 
+ 		MSG("I2S_TXENABLE done\n");
+ 		spin_unlock_irqrestore(&ptri2s_config->lock, flags);
+diff --git a/sound/soc/mtk/i2s_ctrl.h b/sound/soc/mtk/i2s_ctrl.h
+index b762c9c..1d0ec46 100644
+--- a/sound/soc/mtk/i2s_ctrl.h
++++ b/sound/soc/mtk/i2s_ctrl.h
+@@ -212,7 +212,9 @@
+ 
+ /* Constant definition */
+ #define NFF_THRES		4
+-#define I2S_PAGE_SIZE		3072//(3*4096)//(1152*2*2*2)
++//#define I2S_PAGE_SIZE		3072//(3*4096)//(1152*2*2*2)
++#define I2S_PAGE_SIZE		4096*2//(3*4096)//(1152*2*2*2)
++
+ #define I2S_MIN_PAGE_SIZE	4096
+ #define MAX_I2S_PAGE		8
+ #define I2S_TOTAL_PAGE_SIZE 	(I2S_PAGE_SIZE*MAX_I2S_PAGE)
+@@ -344,6 +346,8 @@ typedef struct i2s_config_t
+ 	int enLable;
+ 	int micboost;
+ 	int micin;
++	int playbackIsBig;
++	int captureIsBig;
+ 	
+ 	/* parameters fo ALSA */
+ 	int bALSAEnable;
+diff --git a/sound/soc/mtk/mt76xx_i2s.c b/sound/soc/mtk/mt76xx_i2s.c
+index 2a29dd9..1b32607 100644
+--- a/sound/soc/mtk/mt76xx_i2s.c
++++ b/sound/soc/mtk/mt76xx_i2s.c
+@@ -170,7 +170,10 @@ static int  mt76xx_i2s_startup(struct snd_pcm_substream *substream,
+ {
+ 
+ 	//printk("******* %s *******\n", __func__);
+-    	if((!pi2s_config->i2sStat[SNDRV_PCM_STREAM_PLAYBACK]) && (!pi2s_config->i2sStat[SNDRV_PCM_STREAM_CAPTURE])){
++    if((!pi2s_config->i2sStat[SNDRV_PCM_STREAM_PLAYBACK]) && 
++	   (!pi2s_config->i2sStat[SNDRV_PCM_STREAM_CAPTURE]) && 
++	   (pi2s_config->mmap_index == 0)){
++		printk("******* %s *******\n", __func__);
+ 		i2s_startup();
+     		if(!pi2s_config)
+     			return -1;
+diff --git a/sound/soc/mtk/mt76xx_pcm.c b/sound/soc/mtk/mt76xx_pcm.c
+index 75ca3c5..2e60266 100644
+--- a/sound/soc/mtk/mt76xx_pcm.c
++++ b/sound/soc/mtk/mt76xx_pcm.c
+@@ -122,7 +122,7 @@ struct snd_soc_platform mt76xx_soc_platform = {
+ 
+ static int mt76xx_pcm_close(struct snd_pcm_substream *substream){
+ 
+-	//printk("******* %s *********\n", __func__);
++	//MSG("******* %s *********\n", __func__);
+ 	return 0;
+ }
+ 
+@@ -132,15 +132,15 @@ static snd_pcm_uframes_t mt76xx_pcm_pointer(struct snd_pcm_substream *substream)
+ 	i2s_config_type* rtd = runtime->private_data;
+ 	unsigned int offset = 0;
+ 	//int buff_frame_bond = bytes_to_frames(runtime, GDMA_PAGE_SIZE);
+-	//printk("\n******* %s *********\n", __func__);
++	//MSG("\n******* %s *********\n", __func__);
+ 
+ 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
+ 		offset = bytes_to_frames(runtime, GDMA_PAGE_SIZE*rtd->tx_r_idx);
+-		//printk("r:%d w:%d (%d) \n",rtd->tx_r_idx,rtd->tx_w_idx,(runtime->control->appl_ptr/buff_frame_bond)%GDMA_PAGE_NUM);
++		//MSG("r:%d w:%d (%d) \n",rtd->tx_r_idx,rtd->tx_w_idx,(runtime->control->appl_ptr/buff_frame_bond)%GDMA_PAGE_NUM);
+ 	}
+ 	else{
+ 		offset = bytes_to_frames(runtime, GDMA_PAGE_SIZE*rtd->rx_w_idx);
+-		//printk("w:%d r:%d appl_ptr:%x\n",rtd->rx_w_idx,rtd->rx_r_idx,(runtime->control->appl_ptr/buff_frame_bond)%GDMA_PAGE_NUM);
++		//MSG("w:%d r:%d appl_ptr:%x\n",rtd->rx_w_idx,rtd->rx_r_idx,(runtime->control->appl_ptr/buff_frame_bond)%GDMA_PAGE_NUM);
+ 	}
+ 	return offset;
+ }
+@@ -152,8 +152,8 @@ static int mt76xx_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
+ 	i2s_config_type* rtd = (i2s_config_type*)substream->runtime->private_data;
+ 	//struct snd_pcm_runtime *runtime= substream->runtime;
+ 
+-	//printk("******* %s *********\n", __func__);
+-/*	printk("trigger cmd:%s\n",(cmd==SNDRV_PCM_TRIGGER_START)?"START":\
++	//MSG("******* %s *********\n", __func__);
++/*	MSG("trigger cmd:%s\n",(cmd==SNDRV_PCM_TRIGGER_START)?"START":\
+ 			(cmd==SNDRV_PCM_TRIGGER_RESUME)?"RESUME":\
+ 			(cmd==SNDRV_PCM_TRIGGER_PAUSE_RELEASE)?"PAUSE_RELEASE":\
+ 			(cmd==SNDRV_PCM_TRIGGER_STOP)?"STOP":\
+@@ -208,16 +208,16 @@ static int mt76xx_pcm_copy(struct snd_pcm_substream *substream, int channel,\
+         int rx_r_idx = 0;
+         char *hwbuf = NULL;
+ 
+-	//printk("******* %s *********\n", __func__);
++	//MSG("******* %s *********\n", __func__);
+ 	hwbuf = runtime->dma_area + frames_to_bytes(runtime, pos);
+ 	//MSG("%s bur:%x\n",__func__,hwbuf);
+-	//printk("hw_ptr:%d, buffer_size:%d, appl_prt:%d, boundary:%d\n", 
++	//MSG("hw_ptr:%d, buffer_size:%d, appl_prt:%d, boundary:%d\n", 
+ 	//		runtime->status->hw_ptr, runtime->buffer_size, runtime->control->appl_ptr, runtime->boundary);
+ 
+ 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
+ 		rtd->tx_w_idx = (rtd->tx_w_idx+1)%MAX_I2S_PAGE;
+                 tx_w_idx = rtd->tx_w_idx;
+-                //printk("put TB[%d - %x] for user write\n",rtd->tx_w_idx,pos);
++                //MSG("put TB[%d - %x] for user write\n",rtd->tx_w_idx,pos);
+                 copy_from_user(rtd->pMMAPTxBufPtr[tx_w_idx], (char*)buf, I2S_PAGE_SIZE);	
+ 	}
+ 	else{
+@@ -233,8 +233,8 @@ static int mt76xx_pcm_mmap(struct snd_pcm_substream *substream, struct vm_area_s
+         int ret;
+         unsigned long size;
+ 
+-        size = vma->vm_end-vma->vm_start;
+-        printk("******* %s: size :%lx end:%lx start:%lx *******\n", __func__,size,vma->vm_end,vma->vm_start);
++        size = vma->vm_end - vma->vm_start;
++        //MSG("******* %s: size :%lx end:%lx start:%lx *******\n", __func__,size,vma->vm_end,vma->vm_start);
+         ret = i2s_mmap_remap(vma, size);
+ 
+         return ret;
+@@ -248,15 +248,16 @@ static int mt76xx_pcm_prepare(struct snd_pcm_substream *substream)
+ 	//runtime->buffer_size = GDMA_PAGE_NUM*GDMA_PAGE_SIZE;
+ 	//runtime->boundary = (GDMA_PAGE_NUM*GDMA_PAGE_SIZE)/4;
+ 
+-	//printk("******* %s *******\n", __func__);
++	//MSG("******* %s *******\n", __func__);
+ 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
+-		//printk("===== %s:%s:%d =====\n", __FILE__, __func__, __LINE__);
++		//MSG("===== %s:%s:%d =====\n", __FILE__, __func__, __LINE__);
+ 		mt76xx_pcm_allocate_dma_buffer(substream,SNDRV_PCM_STREAM_PLAYBACK);
+ 		
+ 		if(! rtd->dmaStat[SNDRV_PCM_STREAM_PLAYBACK]){
+ 			i2s_page_prepare(rtd,STREAM_PLAYBACK);
+ 			tasklet_init(&i2s_tx_tasklet, i2s_tx_task, (u32)rtd);
+ 			rtd->dmaStat[SNDRV_PCM_STREAM_PLAYBACK] = 1;
++			//start or stop dma ?
+ 			gdma_unmask_handler(GDMA_I2S_TX0);
+ 		}
+ 	} else {
+@@ -283,7 +284,7 @@ static int mt76xx_pcm_hw_params(struct snd_pcm_substream *substream,
+ 	int ret,i;
+ 	ret = i = 0;
+ 
+-	//printk("******* %s *******\n", __func__);
++	//MSG("******* %s *******\n", __func__);
+ 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
+ 		//i2s_page_prepare(rtd,STREAM_PLAYBACK);
+ 	} else {
+@@ -298,7 +299,7 @@ static int mt76xx_pcm_hw_free(struct snd_pcm_substream *substream)
+ 	i2s_config_type* rtd = (i2s_config_type*)substream->runtime->private_data;
+ 	//struct snd_dma_buffer *buf = &substream->dma_buffer;
+ 
+-	//printk("******* %s *******\n", __func__);
++	//MSG("******* %s *******\n", __func__);
+ 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
+ 		if(rtd->dmaStat[SNDRV_PCM_STREAM_PLAYBACK]){
+ 
+@@ -336,13 +337,17 @@ static int mt76xx_pcm_free_dma_buffer(struct snd_pcm_substream *substream,
+ 	struct snd_dma_buffer *buf = &substream->dma_buffer;
+ 	i2s_config_type* rtd = (i2s_config_type*)substream->runtime->private_data;
+ 
+-	//printk("******* %s *******\n", __func__);
+ 	if (!buf->area)
+ 		return 0;
+-	if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
++	if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
+ 		i2s_memPool_free(rtd,STREAM_PLAYBACK);
+-	else
++		printk("playback free_dma_buffer\n");
++	}
++	else{
+ 		i2s_memPool_free(rtd,STREAM_CAPTURE);
++		printk("capture free_dma_buffer\n");
++	}
++	printk("ptri2s_config->mmap_index:%d\n",rtd->mmap_index);
+ 	buf->area = NULL;
+ 	snd_pcm_set_runtime_buffer(substream, NULL);
+ 	return 0;
+@@ -355,10 +360,10 @@ static int mt76xx_pcm_allocate_dma_buffer(struct snd_pcm_substream *substream,
+ 	struct snd_dma_buffer *buf = &substream->dma_buffer;
+ 	i2s_config_type* rtd = (i2s_config_type*)substream->runtime->private_data;
+ 
+-	//printk("******* %s *******\n", __func__);
++	//MSG("******* %s *******\n", __func__);
+ 	if(!buf->area){
+ #if defined(CONFIG_I2S_MMAP)
+-		printk("\n############## MMAP ##############\n");
++		//MSG("\n############## MMAP ##############\n");
+ 		buf->dev.type = SNDRV_DMA_TYPE_DEV;
+ #else
+ 		buf->dev.type = SNDRV_DMA_TYPE_UNKNOWN;
+@@ -378,7 +383,7 @@ static int mt76xx_pcm_allocate_dma_buffer(struct snd_pcm_substream *substream,
+ #endif
+ 		snd_pcm_set_runtime_buffer(substream, buf);
+ 	} else{
+-		//printk("Buffer have been allocated!\n");
++		//MSG("Buffer have been allocated!\n");
+ 	}
+ 
+ 	return 0;
+@@ -391,7 +396,7 @@ static int mt76xx_pcm_open(struct snd_pcm_substream *substream)
+ 	int stream = substream->stream;
+ 	int ret = 0;
+ 
+-	//printk("******* %s *******\n", __func__);
++	//MSG("******* %s *******\n", __func__);
+ 	snd_soc_set_runtime_hwparams(substream, &mt76xx_pcm_hwparam);
+ 	/* ensure that buffer size is a multiple of period size */
+ 	ret = snd_pcm_hw_constraint_integer(runtime,
+@@ -426,7 +431,7 @@ static int mt76xx_pcm_new(struct snd_soc_pcm_runtime *rtd)
+ {
+ //	int ret = 0;
+ 
+-	//printk("******* %s *******\n", __func__);
++	//MSG("******* %s *******\n", __func__);
+ 	return 0;
+ }
+ 
+@@ -437,20 +442,20 @@ static void mt76xx_pcm_free(struct snd_pcm *pcm)
+ 	i2s_config_type* rtd;
+ 	int stream;
+ */
+-	//printk("******* %s *******\n", __func__);
++	//MSG("******* %s *******\n", __func__);
+ 	//return 0;
+ }
+ 
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,20)
+ static int mt76xx_platform_drv_probe(struct platform_device *pdev)
+ {
+-	//printk("******* %s *******\n", __func__);
++	//MSG("******* %s *******\n", __func__);
+ 	return snd_soc_register_platform(&pdev->dev, &mt76xx_soc_platform);
+ }
+ 
+ static int mt76xx_platform_drv_remove(struct platform_device *pdev)
+ {
+-	//printk("******* %s *******\n", __func__);
++	//MSG("******* %s *******\n", __func__);
+ 	snd_soc_unregister_platform(&pdev->dev);
+ 	return 0;
+ }
+@@ -468,7 +473,7 @@ static struct platform_driver mt76xx_pcm_driver = {
+ static int __init mt76xx_pcm_init(void)
+ {
+ 
+-	printk("******* %s *******\n", __func__);
++	//MSG("******* %s *******\n", __func__);
+ 	return platform_driver_register(&mt76xx_pcm_driver);
+ }
+ 
+@@ -480,13 +485,13 @@ static void __exit mt76xx_pcm_exit(void)
+ static int __init mt76xx_pcm_init(void)
+ {
+ 
+-	printk("******* %s *******\n", __func__);
++	//MSG("******* %s *******\n", __func__);
+ 	return snd_soc_register_platform(&mt76xx_soc_platform);
+ }
+ 
+ static void __exit mt76xx_pcm_exit(void)
+ {
+-	printk("******* %s *******\n", __func__);
++	//MSG("******* %s *******\n", __func__);
+ 	snd_soc_unregister_platform(&mt76xx_soc_platform);
+ }
+ #endif
+-- 
+1.9.1
+
