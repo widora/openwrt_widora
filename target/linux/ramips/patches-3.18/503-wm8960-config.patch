@@ -1,0 +1,60 @@
+Index: linux-3.18.23/sound/soc/codecs/wm8960.c
+===================================================================
+--- linux-3.18.23.orig/sound/soc/codecs/wm8960.c
++++ linux-3.18.23/sound/soc/codecs/wm8960.c
+@@ -210,8 +210,8 @@ static int wm8960_put_deemph(struct snd_
+ 
+ static int wm8960_preinit(struct snd_soc_codec *codec)
+ {
+-	//printk("****** %s ******\n", __func__);
+-	snd_soc_write(codec, WM8960_RESET, 0);
++	printk("****** %s ******\n", __func__);
++	//snd_soc_write(codec, WM8960_RESET, 0);
+ 	mdelay(500);
+ 
+ 	return 0;
+@@ -220,14 +220,14 @@ static int wm8960_preinit(struct snd_soc
+ static int wm8960_postinit(struct snd_soc_codec *codec)
+ {
+ 	u32 data;
+-	//printk("****** %s ******\n", __func__);
++	printk("****** %s ******\n", __func__);
+ 	// In
+ 	data = snd_soc_read(codec, WM8960_POWER1);
+ 	snd_soc_write(codec, WM8960_POWER1, data|WM8960_PWR1_ADCL|WM8960_PWR1_ADCR|WM8960_PWR1_AINL |WM8960_PWR1_AINR|WM8960_PWR1_MICB);//0x19
+ 	data = snd_soc_read(codec, WM8960_ADDCTL1);
+ 	snd_soc_write(codec, WM8960_ADDCTL1, data|ADDITIONAL1_DATSEL(0x01));//0x17
+-	snd_soc_write(codec, WM8960_LADC, LEFTGAIN_LDVU|LEFTGAIN_LDACVOL(0xc3));//0x15
+-	snd_soc_write(codec, WM8960_RADC, LEFTGAIN_LDVU|LEFTGAIN_LDACVOL(0xc3));//0x16
++	//snd_soc_write(codec, WM8960_LADC, LEFTGAIN_LDVU|LEFTGAIN_LDACVOL(0xc3));//0x15
++	//snd_soc_write(codec, WM8960_RADC, LEFTGAIN_LDVU|LEFTGAIN_LDACVOL(0xc3));//0x16
+ 	snd_soc_write(codec, WM8960_LINPATH, 0x148);//0x20
+ 	snd_soc_write(codec, WM8960_RINPATH, 0x148);//0x21
+ 	snd_soc_write(codec, WM8960_POWER3, WM8960_PWR3_LMIC|WM8960_PWR3_RMIC);//0x2f
+@@ -237,8 +237,8 @@ static int wm8960_postinit(struct snd_so
+ 	snd_soc_write(codec, WM8960_POWER2, data|WM8960_PWR2_DACL|WM8960_PWR2_DACR|WM8960_PWR2_LOUT1|WM8960_PWR2_ROUT1|WM8960_PWR2_SPKL|WM8960_PWR2_SPKR);//0x1a
+ 	mdelay(10);
+ 	snd_soc_write(codec, WM8960_IFACE2, 0x40);
+-	snd_soc_write(codec, WM8960_LDAC, LEFTGAIN_LDVU|LEFTGAIN_LDACVOL(0xff));//0x0a
+-	snd_soc_write(codec, WM8960_RDAC, RIGHTGAIN_RDVU|RIGHTGAIN_RDACVOL(0xff));//0x0b
++	//snd_soc_write(codec, WM8960_LDAC, LEFTGAIN_LDVU|LEFTGAIN_LDACVOL(0xff));//0x0a
++	//snd_soc_write(codec, WM8960_RDAC, RIGHTGAIN_RDVU|RIGHTGAIN_RDACVOL(0xff));//0x0b
+ 	snd_soc_write(codec, WM8960_LOUTMIX, 0x100);//0x22
+ 	snd_soc_write(codec, WM8960_ROUTMIX, 0x100);//0x25
+ 
+@@ -253,11 +253,11 @@ static int wm8960_postinit(struct snd_so
+ 	snd_soc_write(codec, WM8960_POWER1,  data|0x1c0);//0x19
+ 
+ 
+-	snd_soc_write(codec, WM8960_LOUT1, LOUT1_LO1VU|LOUT1_LO1ZC|LOUT1_LOUT1VOL(115));//0x02
+-	snd_soc_write(codec, WM8960_ROUT1, ROUT1_RO1VU|ROUT1_RO1ZC|ROUT1_ROUT1VOL(115));//0x03
++	//snd_soc_write(codec, WM8960_LOUT1, LOUT1_LO1VU|LOUT1_LO1ZC|LOUT1_LOUT1VOL(115));//0x02
++	//snd_soc_write(codec, WM8960_ROUT1, ROUT1_RO1VU|ROUT1_RO1ZC|ROUT1_ROUT1VOL(115));//0x03
+ 
+-	snd_soc_write(codec, WM8960_LINVOL, LINV_IPVU|LINV_LINVOL(110)); //LINV(0x00)=>0x12b
+-	snd_soc_write(codec, WM8960_RINVOL, RINV_IPVU|RINV_RINVOL(110)); //LINV(0x01)=>0x12b
++	//snd_soc_write(codec, WM8960_LINVOL, LINV_IPVU|LINV_LINVOL(110)); //LINV(0x00)=>0x12b
++	//snd_soc_write(codec, WM8960_RINVOL, RINV_IPVU|RINV_RINVOL(110)); //LINV(0x01)=>0x12b
+ 
+ 	return 0;
+ }
