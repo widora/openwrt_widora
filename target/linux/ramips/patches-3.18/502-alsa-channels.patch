@@ -1,0 +1,22 @@
+Index: linux-3.18.23/sound/soc/mtk/mt76xx_i2s.c
+===================================================================
+--- linux-3.18.23.orig/sound/soc/mtk/mt76xx_i2s.c
++++ linux-3.18.23/sound/soc/mtk/mt76xx_i2s.c
+@@ -82,7 +82,7 @@ const struct snd_soc_component_driver mt
+ 
+ struct snd_soc_dai_driver mt76xx_i2s_dai = {
+ 	.playback = {
+-		.channels_min = 1,
++		.channels_min = 2,
+ 		.channels_max = 2,
+ 		.rates = (SNDRV_PCM_RATE_8000|SNDRV_PCM_RATE_11025|\
+ 		SNDRV_PCM_RATE_16000|SNDRV_PCM_RATE_22050|SNDRV_PCM_RATE_32000|\
+@@ -92,7 +92,7 @@ struct snd_soc_dai_driver mt76xx_i2s_dai
+ 				SNDRV_PCM_FMTBIT_S24_LE),
+ 	},
+ 	.capture = {
+-		.channels_min = 1,
++		.channels_min = 2,
+ 		.channels_max = 2,
+ 		.rates = (SNDRV_PCM_RATE_8000|SNDRV_PCM_RATE_11025|\
+ 				SNDRV_PCM_RATE_16000|SNDRV_PCM_RATE_22050|SNDRV_PCM_RATE_32000|\

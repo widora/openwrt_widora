@@ -1,0 +1,30 @@
+Index: linux-3.18.23/sound/soc/mtk/Makefile
+===================================================================
+--- linux-3.18.23.orig/sound/soc/mtk/Makefile
++++ linux-3.18.23/sound/soc/mtk/Makefile
+@@ -15,7 +15,9 @@ KBUILD_CFLAGS += -DRALINK_GDMA_BASE=0xB0
+ KBUILD_CFLAGS += -DCONFIG_GDMA_EVERYBODY
+ KBUILD_CFLAGS += -DCONFIG_SND_MT76XX_SOC
+ KBUILD_CFLAGS += -DCONFIG_I2S_WM8960
+-KBUILD_CFLAGS += -DCONFIG_I2S_MCLK_12P288MHZ
++#KBUILD_CFLAGS += -DCONFIG_I2S_MCLK_12P288MHZ
++KBUILD_CFLAGS += -DCONFIG_I2S_IN_MCLK
++KBUILD_CFLAGS += -DCONFIG_I2S_MCLK_12MHZ
+ KBUILD_CFLAGS += -DCONFIG_GDMA_EVERYBODY
+ KBUILD_CFLAGS += -DSURFBOARDINT_DMA=15
+ KBUILD_CFLAGS += -DRALINK_INTCTL_DMA=128
+Index: linux-3.18.23/sound/soc/mtk/i2s_ctrl.c
+===================================================================
+--- linux-3.18.23.orig/sound/soc/mtk/i2s_ctrl.c
++++ linux-3.18.23/sound/soc/mtk/i2s_ctrl.c
+@@ -1788,8 +1788,8 @@ int i2s_clock_disable(i2s_config_type* p
+ 
+ 	/* disable internal MCLK */
+ #if defined(CONFIG_I2S_IN_MCLK)	
+-	i2s_refclk_disable();
+-	i2s_refclk_gpio_in_config();
++	//i2s_refclk_disable();
++	//i2s_refclk_gpio_in_config();
+ #endif
+ 	return 0;
+ }	
