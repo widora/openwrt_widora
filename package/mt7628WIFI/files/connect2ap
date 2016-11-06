@@ -69,7 +69,24 @@ do
 		uci set network.wan.proto=dhcp
 		uci set	network.lan.ipaddr=192.168.99.1
 		uci commit
+		lanip1=`ifconfig br-lan | grep 'inet addr:'| cut -d: -f2 | awk '{ print $1}'|cut -d. -f1`
+                lanip2=`ifconfig br-lan | grep 'inet addr:'| cut -d: -f2 | awk '{ print $1}'|cut -d. -f2` 
+                lanip3=`ifconfig br-lan | grep 'inet addr:'| cut -d: -f2 | awk '{ print $1}'|cut -d. -f3`
+
 		/etc/init.d/network restart
+
+		sleep 15                                            
+		wanip1=`ifconfig apcli0 | grep 'inet addr:'| cut -d: -f2 | awk '{ print $1}'|cut -d. -f1`
+                wanip2=`ifconfig apcli0 | grep 'inet addr:'| cut -d: -f2 | awk '{ print $1}'|cut -d. -f2`
+                wanip3=`ifconfig apcli0 | grep 'inet addr:'| cut -d: -f2 | awk '{ print $1}'|cut -d. -f3`
+                if [ "$wanip1"x = "$lanip1"x -a "$wanip2"x = "$lanip2"x -a "$wanip3"x = "$lanip3"x ]; then
+                echo WAN IP conflict to LAN IP                                 
+                newlanip=$wanip1.$wanip2.`expr $wanip3 + 1`.1     
+                uci set network.lan.ipaddr=$newlanip    
+                ifconfig br-lan $newlanip          
+                echo set br-lan to $newlanip                                                             
+                uci commit                                                                               
+                fi
         exit 0
 	fi
 done <<EOF
