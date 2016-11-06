@@ -24,6 +24,9 @@ do
 		elif [ "$security"x = "WPA1PSKWPA2PSK/AES"x ]; then
 			umode="WPA2PSK"
         		uencryp="AES"
+		elif [ "$security"x = "WPA2PSK/TKIPAES"x ]; then
+			umode="WPA2PSK"
+        		uencryp="TKIP"
 		elif [ "$security"x = "WPA2PSK/AES"x ]; then
         		umode="WPA2PSK"
         		uencryp="AES"
