@@ -1,0 +1,31 @@
+#!/bin/sh
+
+apass=''
+if [ -n "$QUERY_STRING" ]; then
+    echo "Content-Type: application/json"
+    echo ""
+	firstexp=`echo $QUERY_STRING | cut -d'&' -f 1`
+	firstkey=`echo $firstexp | cut -d'=' -f 1`
+	firstvalue=`echo $firstexp | cut -d'=' -f 2`
+
+	if [ "$firstkey"x = "password1"x -o "$firstkey"x = "passwd"x ]; then
+		apass=$firstvalue
+	else
+		echo "{\"result\"=\"error\",\"message\"=\"Please input the right format like password=xxxx\"}"
+		exit 1
+	fi
+   	
+elif [ -z "$1" ]; then
+    	echo "Need to specify password, like setpass <password>"
+    	exit 2
+else
+    	apass=$1
+fi
+uci set wireless.@wifi-iface[0].encryption=psk2
+uci set wireless.@wifi-iface[0].key=$apass
+uci commit
+echo "{\"result\"=\"success\",\"message\"=\"operation finished\"}"
+# Restart network service
+/etc/init.d/network restart 1>&- 2>&-
+
+exit 0
