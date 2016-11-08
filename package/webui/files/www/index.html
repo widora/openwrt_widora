@@ -128,7 +128,7 @@
               <legend>AP设置</legend>
               <div class="form-group">
                 <label for="ssid">AP名字</label>
-                <div id="ssid">正在获取SSID...</div>
+                <div id="ssidname">正在获取SSID...</div>
               </div>
               <div class="form-group">
                 <label for="passwd">无线密码</label>
@@ -200,10 +200,10 @@
         contentType: "application/json; charset=utf-8",
         success: function(json) {
           if (json.result == "success") {
-            $("#ssid").text(json.ssid)
+            $("#ssidname").text(json.ssid)
           }
           else {
-            $("#ssid").text(json.message)
+            $("#ssidname").text(json.message)
           }
         },
         error: function(error) {
