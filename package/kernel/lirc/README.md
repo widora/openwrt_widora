@@ -1,5 +1,7 @@
--------     In test and construction.....    
+-------     In test and construction     --------    
 
-This is an infrared remote control receiver module.
+This is a driver program for infrared remote control receiver demodulation module.
+An infrared receiver module has three pins, two for power supply and one for data output.
+The data output pin shall be connected to Widora IO17 PIN.
 
 midas zhou
