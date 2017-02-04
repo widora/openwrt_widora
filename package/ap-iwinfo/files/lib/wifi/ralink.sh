@@ -8,7 +8,7 @@ write_ralink() {
 	local devtype=$2
 	local dev=$3
 	local mode=$4
-	local channel=$5
+#	local channel=$5
 	local sta=apcli0
 
 	[ -d /sys/module/$dir ] || return
@@ -23,13 +23,14 @@ config wifi-device	radio0
 	option htmode	HT40
 	option channel  auto
 	option disabled	0
+	option linkit_mode ap
 
 config wifi-iface ap
 	option device   radio0
 	option mode	ap
 	option network  lan
 	option ifname   $dev
-	option ssid	Widora-$(cat /sys/class/net/eth0/address|awk -F ":" '{print $5""$6}'| tr a-z A-Z)
+	option ssid	OpenWrt
 	option encryption none 
 
 config wifi-iface sta
@@ -41,7 +42,6 @@ config wifi-iface sta
 	option ssid	UplinkAp
 	option key	SecretKey
 	option encryption psk
-	option disabled	1
 EOF
 }
 
@@ -51,7 +51,7 @@ detect_ralink() {
 	cpu=$(awk 'BEGIN{FS="[ \t]+: MediaTek[ \t]"} /system type/ {print $2}' /proc/cpuinfo | cut -d" " -f1)
 	case $cpu in
 	MT7688)
-		write_ralink mt_wifi mt7628 ra0 11g 7
+		write_ralink mt_wifi mt7628 ra0 11g
 		;;
 	esac
 

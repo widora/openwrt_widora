@@ -7,7 +7,7 @@
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
-PKG_NAME:=mtk-sdk-wifi
+PKG_NAME:=ap-iwinfo
 PKG_VERSION:=2015-06-01
 PKG_RELEASE=$(PKG_SOURCE_VERSION)
 
@@ -27,15 +27,15 @@ PKG_CONFIG_DEPENDS := \
 
 include $(INCLUDE_DIR)/package.mk
 
-define Package/mtk-sdk-wifi
-  SECTION:=ralink
+define Package/ap-iwinfo
+# SECTION:=ralink
   CATEGORY:=Ralink SDK
-  TITLE:=MT7628/88 SDK Wifi
-  DEPENDS:=@TARGET_ramips_mt7688 +wireless-tools +libuci
+  TITLE:=ap_client command and iwinfo patch
+  DEPENDS:=@TARGET_ramips_mt7688 +wireless-tools +libuci +kmod-mtk-wifi
   ABI_VERSION:=$(PKG_RELEASE)
 endef
 
-define Package/mtk-sdk-wifi/description
+define Package/ap-iwinfo/description
   Wireless information library with consistent interface for proprietary Broadcom,
   madwifi, nl80211 and wext driver interfaces.
   Command line frontend for the wireless information library.
@@ -73,22 +73,15 @@ define Build/InstallDev
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/iwinfo.so $(1)/usr/lib/lua/iwinfo.so
 endef
 
-define Package/mtk-sdk-wifi/install
+define Package/ap-iwinfo/install
 	$(INSTALL_DIR) $(1)/usr/bin $(1)/lib/modules/$(LINUX_VERSION)/
 	$(INSTALL_DIR) $(1)/lib
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/iwinfo $(1)/usr/bin/iwinfo.rt
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/libiwinfo.so $(1)/lib/libiwinfo.so
-	$(INSTALL_DIR) $(1)/usr/bin
-	$(RM) $(1)/usr/bin/connect2ap
+	
 	$(INSTALL_DIR) $(1)/sbin/
 	$(CP) $(PKG_BUILD_DIR)/ap_client $(1)/sbin/
-ifneq ($(CONFIG_ALL_KMODS),)
-	$(CP) ./wifi_binary/mt_wifi_elianaesairkiss.ko_$(LINUX_VERSION)_all $(1)/lib/modules/$(LINUX_VERSION)/mt_wifi.ko
-else
-	$(CP) ./wifi_binary/mt_wifi_elianaesairkiss.ko_$(LINUX_VERSION) $(1)/lib/modules/$(LINUX_VERSION)/mt_wifi.ko
-endif
-	$(CP) ./files/* $(1)
 
 endef
 
-$(eval $(call BuildPackage,mtk-sdk-wifi))
+$(eval $(call BuildPackage,ap-iwinfo))
