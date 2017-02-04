@@ -142,7 +142,7 @@
                 wifi {
                         label = "mediatek:orange:wifi";
                         gpios = <&wgpio 0 0>;
-                        default-state = "on";
+                        default-state = "off";
                 };
         };
 
