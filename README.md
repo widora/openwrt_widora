@@ -1,9 +1,15 @@
 How to compile?
-# 1.install depend
+# 1.install depend on Ubuntu14.04
 $ sudo apt-get update
 
 $ sudo apt-get install git g++ make libncurses5-dev subversion libssl-dev gawk libxml-parser-perl unzip wget python \
 xz-utils vim
+
+# 1.install depend on Macos
+note: install brew and Xcode command line tools
+$brew install coreutils findutils gawk gnu-getopt gnu-tar grep wget quilt xz
+note: gnu-getopt is keg-only, so force linking it:brew ln gnu-getopt --force
+
 # 2.download the source use git
 $ git clone https://github.com/widora/openwrt_widora.git
 # 3.update the feeds
