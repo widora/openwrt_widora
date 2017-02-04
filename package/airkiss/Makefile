@@ -17,7 +17,7 @@ define Package/airkiss
   SECTION:=Ralink SDK Mango
   CATEGORY:=Ralink SDK Mango
   TITLE:=airkiss
-  DEPENDS:= +libpthread +librt +libstdcpp +mt7628
+  DEPENDS:= +libpthread +librt +libstdcpp
 endef
 
 define Package/airkiss/description
