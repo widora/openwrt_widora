@@ -29,7 +29,7 @@ include $(INCLUDE_DIR)/package.mk
 
 define Package/ap-iwinfo
 # SECTION:=ralink
-  CATEGORY:=Ralink SDK
+  CATEGORY:=Ralink SDK Mango
   TITLE:=ap_client command and iwinfo patch
   DEPENDS:=@TARGET_ramips_mt7688 +wireless-tools +libuci +kmod-mtk-wifi
   ABI_VERSION:=$(PKG_RELEASE)
