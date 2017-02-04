@@ -30,7 +30,7 @@ config wifi-iface ap
 	option mode	ap
 	option network  lan
 	option ifname   $dev
-	option ssid	OpenWrt
+	option ssid	Widora-$(cat /sys/class/net/eth0/address|awk -F ":" '{print $5""$6}'| tr a-z A-Z)
 	option encryption none 
 
 config wifi-iface sta
