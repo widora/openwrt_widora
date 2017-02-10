@@ -20,7 +20,7 @@ define Profile/Widora32M
 		kmod-sdhci-mt7620 kmod-usb-storage \
 		kmod-video-core kmod-video-uvc \
 		kmod-sound-core kmod-sound-mtk madplay-alsa alsa-utils \
-		ap-iwinfo mtk-wifi airkiss webui\
+		mtk-wifi airkiss webui\
         	maccalc shairport_mmap reg
 endef
 
