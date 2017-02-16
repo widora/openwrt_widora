@@ -35,6 +35,47 @@ static int survey_count = 0;
 static char *led_name;
 static int led_state = -1;
 
+#define DEBUG
+
+#ifdef DEBUG
+#include <stdarg.h>
+#define LOG_FILE "/tmp/wifilog"
+static int print_f(char *buf)
+{
+	FILE *fp;
+    fp = fopen(LOG_FILE, "r");
+    if (fp == NULL)
+    {
+        return -EIO;
+    }
+    fclose(fp);
+	fp = fopen(LOG_FILE, "a+");
+	if (fp == NULL)
+	{
+		return -EIO;
+	}
+	fwrite(buf, 1, strlen(buf), fp);        
+	fclose(fp);
+	return 0;
+}
+int print_log(const char *fmt, ...)
+{
+	va_list args;
+	int i;
+	char buf[512];
+	va_start(args, fmt);
+	i = vsprintf(buf, fmt, args);
+	va_end(args);
+	print_f(buf);
+	return i;
+}
+#else
+int print_log(const char *fmt, ...)
+{
+	return 0;
+}
+#endif
+
 static int led_set(char *file, char *value)
 {
 	FILE* fp;
@@ -107,7 +148,7 @@ static void wifi_site_survey(const char *ifname, int print)
 	char *line, *start;
 
 	iwpriv(ifname, "SiteSurvey", "");
-	sleep(5);
+	sleep(2);
 	memset(s, 0x00, IW_SCAN_MAX_DATA);
 	strcpy(wrq.ifr_name, ifname);
 	wrq.u.data.length = IW_SCAN_MAX_DATA;
@@ -242,12 +283,13 @@ static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, cha
 	static int assoc_count = 0;
 
 	while (1) {
+		print_log("check:");
 		if (!check_assoc(staname)) {
 			struct survey_table *c;
-
+			print_log("disconnect\n");
 			led_set_trigger(1);
 			iwpriv("ra0", "Beacon", "0");
-			syslog(LOG_INFO, "%s is not associated\n", staname);
+			//print_log("%s is not associated\n", staname);
 			syslog(LOG_INFO, "Scanning for networks...\n");
 			wifi_site_survey(ifname, 0);
 			c = wifi_find_ap(essid, bssid);
@@ -262,9 +304,10 @@ static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, cha
 				try_count = 0;
 			}
 		} else {
+			print_log("connect\n");
 			if (assoc_count == 0) {
 				iwpriv("ra0", "Beacon", beacon);
-				syslog(LOG_INFO, "%s is associated\n", staname);
+				//print_log( "%s is associated\n", staname);
 				led_set_trigger(0);
 			}
 
@@ -274,7 +317,7 @@ static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, cha
 /*			if ((assoc_count % 4) == 0)
 				syslog(LOG_INFO, "%s is still associated\n", staname);*/
 		}
-		sleep(10);
+		sleep(2);
 	}
 }
 
@@ -297,7 +340,15 @@ int main(int argc, char **argv)
 
 	if (argc == 3)
 		return main_led(argc, argv);
-
+	if (argc == 1)
+	{
+		if(check_assoc("apcli0")){
+			printf("ok\n");
+		}else{
+			printf("no\n");
+		}
+		return 0;
+	}
 	if (argc < 7)
 		return -1;
 
@@ -308,14 +359,14 @@ int main(int argc, char **argv)
 		fprintf(fp, "%d", getpid());
 		fclose(fp);
 	}
-
+	print_log("main\n");
 	setbuf(stdout, NULL);
 	openlog("ap_client", 0, 0);
 	if (argc > 7)
 		led_name = argv[7];
 
 	led_set_trigger(1);
-
+	print_log("loop:%s,%s,%s,%s,%s,%s,%s\n",argv[1], argv[2], argv[3], argv[4], argv[5], argv[6],argv[7]);
 	assoc_loop(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
 
 	return 0;

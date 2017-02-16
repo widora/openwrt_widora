@@ -141,7 +141,7 @@ ralink_setup_sta(){
 		wep) json_get_var key key1;;
 	esac
 	json_select ..
-
+	killall ap_client
 	/sbin/ap_client "ra0" "$ifname" "${ssid}" "${key}" "${bssid}" "${bcn_active}" "${led}"
 	sleep 1
 	wireless_add_process "$(cat /tmp/apcli-${ifname}.pid)" /sbin/ap_client ra0 "$ifname" "${ssid}" "${key}" "${bssid}" "${bcn_active}" "${led}"
