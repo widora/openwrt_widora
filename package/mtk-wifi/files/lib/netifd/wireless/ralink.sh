@@ -127,13 +127,13 @@ ralink_setup_ap(){
 
 ralink_setup_sta(){
 	local name="$1"
-	local bcn_active=0
+	local hide=1
 	json_select config
 	json_get_vars mode apname ifname ssid bssid encryption key key1 key2 key3 key4 wps_pushbutton led
 
 	linkit_mode="$(uci get wireless.radio0.linkit_mode)"
-	[ "${linkit_mode}" = "ap" ] && return
-	[ "${linkit_mode}" == "apsta" ] && bcn_active=1
+	[ "${linkit_mode}" == "ap" ] && return
+	[ "${linkit_mode}" == "apsta" ] && hide=0
 
 	key=
 	case "$encryption" in
@@ -142,9 +142,9 @@ ralink_setup_sta(){
 	esac
 	json_select ..
 	killall ap_client
-	/sbin/ap_client "ra0" "$ifname" "${ssid}" "${key}" "${bssid}" "${bcn_active}" "${led}"
+	/sbin/ap_client "ra0" "$ifname" "${ssid}" "${key}" "${bssid}" "${hide}" "${led}"
 	sleep 1
-	wireless_add_process "$(cat /tmp/apcli-${ifname}.pid)" /sbin/ap_client ra0 "$ifname" "${ssid}" "${key}" "${bssid}" "${bcn_active}" "${led}"
+	wireless_add_process "$(cat /tmp/apcli-${ifname}.pid)" /sbin/ap_client ra0 "$ifname" "${ssid}" "${key}" "${bssid}" "${hide}" "${led}"
 
 	wireless_add_vif "$name" "$ifname"
 }
@@ -171,11 +171,11 @@ drv_ralink_setup() {
 
 	case ${htmode:-none} in
 	HT20)
-		wmode=10
+		wmode=9
 		HT=0
 		;;
 	HT40)
-		wmode=10
+		wmode=9
 		HT=1
 		EXTCHA=1
 		;;

@@ -18,7 +18,7 @@ write_ralink() {
 config wifi-device	radio0
 	option type     ralink
 	option variant	$devtype
-	option country	TW
+	option country	CN
 	option hwmode	$mode
 	option htmode	HT20
 	option region 1
