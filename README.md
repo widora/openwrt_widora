@@ -1,21 +1,22 @@
-## check connect to other ap or not?
+#### 检查是否连外部AP，用如下命令，检查返回值ok还是no。
 ``` sh
 $ ap_client
 ```
 ok is connected
 no is not connected
-
-## widora_command
-
+#### 设置板子工作模式的命令
+```sh
+$ widora_mode
+```
 | MODE |   REPEATER     |  CLIENT  | ROUTER PPPOE |
 |---|---|---|---|
 LAN  | eth0 ap apcli0 | eth0  ap | ap           |
 WAN  |                | apcli0   | eth0         |
 ```sh
-"widora repeater" or "widora repeater ssid key"
-"widora client" or "widora client ssid key"
-"widora router"
-"widora pppoe" or "widora pppoe name key"
+"widora_mode repeater" or "widora_mode repeater ssid key"
+"widora_mode client" or "widora_mode client ssid key"
+"widora_mode router"
+"widora_mode pppoe" or "widora_mode pppoe name key"
 ```
 ## How to compile?
 # 1.install depend
