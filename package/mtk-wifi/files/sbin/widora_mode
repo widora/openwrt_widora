@@ -9,8 +9,9 @@ repeater)	#repeater mode
 	uci set wireless.radio0.linkit_mode=apsta
 	uci set wireless.sta.network=lan
 	uci set dhcp.lan.ignore=1
+	uci set network.lan.proto='dhcp'
+	uci set network.lan.ifname='eth0'
 	uci delete network.wan
-	uci set network.lan.proto=dhcp
 	uci commit
 	/etc/init.d/network restart
 	;;
@@ -24,6 +25,7 @@ client)	#client mode
 	uci set network.wan.proto='dhcp'
 	uci set dhcp.lan.ignore=0
 	uci set network.lan.proto=static
+	uci set network.lan.ifname='eth0'
 	uci commit
 	/etc/init.d/network restart
 	;;
@@ -32,6 +34,7 @@ router)	#router mode
 	uci set wireless.sta.network=wan
 	uci set dhcp.lan.ignore=0
 	uci set network.lan.proto=static
+	uci delete network.lan.ifname
 	uci set network.wan=interface
 	uci set network.wan.ifname='eth0'
 	uci set network.wan.proto='dhcp'	
@@ -43,6 +46,7 @@ pppoe)	#pppoe mode
 	uci set wireless.sta.network=wan
 	uci set dhcp.lan.ignore=0
 	uci set network.lan.proto=static
+	uci delete network.lan.ifname
 	uci set network.wan=interface
 	uci set network.wan.ifname='eth0'
 	uci set network.wan.proto='pppoe'
@@ -63,5 +67,5 @@ echo "\"widora repeater\" or \"widora repeater ssid key\""
 echo "\"widora client\" or \"widora client ssid key\""
 echo "\"widora router\""
 echo "\"widora pppoe\" or \"widora pppoe name key\""
-echo "----------------------------------------------------"
+echo "---------------------------------------------------"
 fi

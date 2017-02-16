@@ -1,3 +1,18 @@
+## check connect to other ap or not?
+$ ap_client
+ok is connected
+no is not connected
+## widora_command
+---------------------------------------------------
+widora help
+MODE |   REPEATER     |  CLIENT  | ROUTER PPPOE |
+LAN  | eth0 ap apcli0 | eth0  ap | ap           |
+WAN  |                | apcli0   | eth0         |
+"widora repeater" or "widora repeater ssid key"
+"widora client" or "widora client ssid key"
+"widora router"
+"widora pppoe" or "widora pppoe name key"
+----------------------------------------------------
 ## How to compile?
 # 1.install depend
 ## Ubuntu14.04

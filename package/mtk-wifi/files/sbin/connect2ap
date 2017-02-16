@@ -1,4 +1,4 @@
 #!/bin/sh
 
-widora_mode repeater $1 $2
+widora_mode client $1 $2
 
