@@ -45,7 +45,7 @@ airkiss_result_t ak_result;
 int set_channel(int channel)
 {
         char cmd[128] = "\0";
-	snprintf(cmd,128,"iwpriv ra0 elian set_ch=%d",channel);
+	snprintf(cmd,128,"iwpriv apcli0 elian set_ch=%d",channel);
 	system(cmd);
 	return 0;
 }
@@ -66,7 +66,8 @@ static void exit_airkiss(int sig)
 	int    socket_id;
 	struct   iwreq wrq;
 	char data[64];
-	system("iwpriv ra0 elian monitor_off");
+	system("iwpriv apcli0 elian monitor_off");
+	system("iwpriv apcli0 elian stop");
 	socket_id = socket(AF_INET, SOCK_DGRAM, 0);
 	if(socket_id < 0)
 	{
@@ -75,7 +76,7 @@ static void exit_airkiss(int sig)
 	}
 	memset(data, 0x00, 64);
 	strcpy(data,"mangop");
-	strcpy(wrq.ifr_name, "ra0");
+	strcpy(wrq.ifr_name, "apcli0");
 	wrq.u.data.length = 64;
 	wrq.u.data.pointer = data;
 	wrq.u.data.flags = 0;
@@ -130,12 +131,12 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 	printf("start monitor mode\n");
-	system("iwpriv ra0 elian monitor_on");
+	system("iwpriv apcli0 elian monitor_on");
 
 
 	memset(data, 0x00, RX_BUF_SIZE);
 	strcpy(data,"mangos");
-	strcpy(wrq.ifr_name, "ra0");
+	strcpy(wrq.ifr_name, "apcli0");
 	wrq.u.data.length = RX_BUF_SIZE;
 	wrq.u.data.pointer = data;
 	wrq.u.data.flags = 0;
@@ -143,7 +144,8 @@ int main(int argc, char* argv[])
 	if(ret != 0)
 	{
 		printf("error::start monitor mode\n\n");
-		system("iwpriv ra0 elian monitor_off");
+		system("iwpriv apcli0 elian monitor_off");
+		system("iwpriv apcli0 elian stop");
 		return -1;
 	}
 
@@ -161,7 +163,7 @@ int main(int argc, char* argv[])
     {
 	memset(data, 0x00, RX_BUF_SIZE);
 	strcpy(data,"mangor");
-	strcpy(wrq.ifr_name, "ra0");
+	strcpy(wrq.ifr_name, "apcli0");
 	wrq.u.data.length = RX_BUF_SIZE;
 	wrq.u.data.pointer = data;
 	wrq.u.data.flags = 0;
@@ -206,10 +208,11 @@ int main(int argc, char* argv[])
 
 	}
     }
-	system("iwpriv ra0 elian monitor_off");
+	system("iwpriv apcli0 elian monitor_off");
+	system("iwpriv apcli0 elian stop");
 	memset(data, 0x00, RX_BUF_SIZE);
 	strcpy(data,"mangop");
-	strcpy(wrq.ifr_name, "ra0");
+	strcpy(wrq.ifr_name, "apcli0");
 	wrq.u.data.length = RX_BUF_SIZE;
 	wrq.u.data.pointer = data;
 	wrq.u.data.flags = 0;

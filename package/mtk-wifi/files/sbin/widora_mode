@@ -1,0 +1,71 @@
+#!/bin/sh
+if [ -n "$1" ];then
+wifi down
+sleep 1
+case $1 in
+repeater)	#repeater mode
+	[ -n "$2" ] && uci set wireless.sta.ssid=$2
+	[ -n "$3" ] && uci set wireless.sta.key=$3
+	uci set wireless.radio0.linkit_mode=apsta
+	uci set wireless.sta.network=lan
+	uci set dhcp.lan.ignore=1
+	uci set network.lan.proto='dhcp'
+	uci set network.lan.ifname='eth0'
+	uci delete network.wan
+	uci commit
+	/etc/init.d/network restart
+	;;
+client)	#client mode
+	[ -n "$2" ] && uci set wireless.sta.ssid=$2
+	[ -n "$3" ] && uci set wireless.sta.key=$3
+	uci set wireless.radio0.linkit_mode=sta
+	uci set wireless.sta.network=wan
+	uci set network.wan=interface
+	uci set network.wan.ifname='apcli0'
+	uci set network.wan.proto='dhcp'
+	uci set dhcp.lan.ignore=0
+	uci set network.lan.proto=static
+	uci set network.lan.ifname='eth0'
+	uci commit
+	/etc/init.d/network restart
+	;;
+router)	#router mode	
+	uci set wireless.radio0.linkit_mode=ap
+	uci set wireless.sta.network=wan
+	uci set dhcp.lan.ignore=0
+	uci set network.lan.proto=static
+	uci delete network.lan.ifname
+	uci set network.wan=interface
+	uci set network.wan.ifname='eth0'
+	uci set network.wan.proto='dhcp'	
+	uci commit
+	/etc/init.d/network restart
+	;;
+pppoe)	#pppoe mode	
+	uci set wireless.radio0.linkit_mode=ap
+	uci set wireless.sta.network=wan
+	uci set dhcp.lan.ignore=0
+	uci set network.lan.proto=static
+	uci delete network.lan.ifname
+	uci set network.wan=interface
+	uci set network.wan.ifname='eth0'
+	uci set network.wan.proto='pppoe'
+	[ -n "$2" ] && uci set network.wan.username=$2
+	[ -n "$3" ] && uci set network.wan.password=$3	
+	uci commit
+	/etc/init.d/network restart
+	;;
+esac
+
+else
+echo "---------------------------------------------------"
+echo "widora help"
+echo "MODE |   REPEATER     |  CLIENT  | ROUTER PPPOE |"
+echo "LAN  | eth0 ap apcli0 | eth0  ap | ap           |"
+echo "WAN  |                | apcli0   | eth0         |"
+echo "\"widora repeater\" or \"widora repeater ssid key\""
+echo "\"widora client\" or \"widora client ssid key\""
+echo "\"widora router\""
+echo "\"widora pppoe\" or \"widora pppoe name key\""
+echo "---------------------------------------------------"
+fi
