@@ -64,6 +64,7 @@ platform_check_image() {
 	linkits7688 | \
 	linkits7688d | \
 	widora | \
+	widora32m | \
 	m2m | \
 	m3 | \
 	m4 | \

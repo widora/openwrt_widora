@@ -1,0 +1,52 @@
+From 8d1c55f14ecfc92990f424bf35dfa783900f4055 Mon Sep 17 00:00:00 2001
+From: Pillar Zuo <zuobaozhu@gmail.com>
+Date: Wed, 7 Sep 2016 19:53:46 +0800
+Subject: [PATCH 6/7] update mt76xx_pcm
+
+Signed-off-by: Pillar Zuo <zuobaozhu@gmail.com>
+---
+ sound/soc/mtk/mt76xx_pcm.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/sound/soc/mtk/mt76xx_pcm.c b/sound/soc/mtk/mt76xx_pcm.c
+index 82fd706..bfb097d 100644
+--- a/sound/soc/mtk/mt76xx_pcm.c
++++ b/sound/soc/mtk/mt76xx_pcm.c
+@@ -32,6 +32,8 @@
+ #include <sound/soc.h>
+ #include <sound/soc-dapm.h>
+ #include <sound/initval.h>
++#include <linux/delay.h>
++
+ #include "ralink_gdma.h"
+ #include "mt76xx_i2s.h"
+ 
+@@ -82,7 +84,7 @@ static const struct snd_pcm_hardware mt76xx_pcm_hwparam = {
+ 				SNDRV_PCM_INFO_PAUSE |
+ 				SNDRV_PCM_INFO_RESUME),
+ #endif
+-	.formats		= SNDRV_PCM_FMTBIT_S16_LE,
++	.formats		= SNDRV_PCM_FMTBIT_S16_LE|SNDRV_PCM_FMTBIT_S24_LE,
+ 	.rates 			= SNDRV_PCM_RATE_8000_48000,
+ 	.period_bytes_min	= GDMA_PAGE_SIZE,
+ 	.period_bytes_max	= GDMA_PAGE_SIZE,
+@@ -356,7 +358,7 @@ static int mt76xx_pcm_hw_free(struct snd_pcm_substream *substream)
+ 			gdma_En_Switch(rtd,STREAM_PLAYBACK,GDMA_I2S_DIS);
+ 			i2s_tx_end_sleep_on(rtd);
+ 			tasklet_kill(&i2s_tx_tasklet);
+-			i2s_tx_disable(rtd);
++			i2s_tx_disable(rtd);			
+ 			//mt76xx_pcm_free_dma_buffer(substream,substream->stream);
+ 			i2s_page_release(rtd,STREAM_PLAYBACK);
+ 			rtd->dmaStat[SNDRV_PCM_STREAM_PLAYBACK] = 0;
+@@ -366,7 +368,6 @@ static int mt76xx_pcm_hw_free(struct snd_pcm_substream *substream)
+ 	}
+ 	else{
+ 		if(rtd->dmaStat[SNDRV_PCM_STREAM_CAPTURE]){
+-
+ 			gdma_En_Switch(rtd,STREAM_CAPTURE,GDMA_I2S_DIS);
+ 			i2s_rx_end_sleep_on(rtd);
+ 			tasklet_kill(&i2s_rx_tasklet);
+-- 
+1.9.1
+

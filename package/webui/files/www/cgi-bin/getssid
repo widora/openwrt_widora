@@ -1,0 +1,9 @@
+#!/bin/sh
+echo "Content-Type: application/json"
+echo ""
+ssid=`uci get wireless.@wifi-iface[0].ssid`
+if [ $ssid ]; then
+    echo "{\"result\":\"success\",\"ssid\":\"$ssid\"}"
+else
+    echo "{\"result\":\"error\",\"message\":\"can not get ssid\"}"
+fi

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="assets/ico/favicon.ico">
+
+    <title>Widora WIFI SET</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="css/bootstrap-select.min.css">
+    <link type="text/css" href="css/style.css" rel="stylesheet">
+
+    <!-- Just for debugging purposes. Don't actually copy this line! -->
+    <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <script type="text/javascript">
+      function setwifi() {
+        $.ajax({
+          type: "GET", 
+          url: "/cgi-bin/setwifi?ssid="+$('#ssid').val()+"&password="+$('#password').val(),
+          dataType: "json",
+          contentType: "application/json; charset=utf-8",
+          success: function(json) {
+              if (json.result == "error") {
+                $('#alertMsg').innerHTML="<div class='alert alert-danger'>" + json.message + "</div>"
+              }
+          },
+          error: function(error) {
+            //alert("调用出错" + error.responseText);
+          }
+        });
+        document.getElementById('alertMsg').innerHTML="<div class='alert alert-info'>正在连接AP，请等待大约30秒后刷新本页面查看状态...</div>"
+        return false;
+      }
+    </script>
+    <script type="text/javascript">
+      function diswifi() {
+        $.ajax({
+          type: "GET",
+          url: "/cgi-bin/diswifi",
+          dataType: "json",
+          contentType: "application/json; charset=utf-8",
+          success: function(json) {
+            if (json.result=="success") {
+              $("#status").text("已连接路由器，ApCli IP:" + json.ip)
+            }
+            else {
+              $('#status').text("未连接路由器")
+            }
+          },
+          error: function(error) {
+            //alert("调用出错" + error.responseText);
+          }
+        });
+      }
+    </script>
+    <script type="text/javascript">
+      function setpass() {
+        $.ajax({
+          type: "GET",
+          url: "/cgi-bin/setpass?passwd="+$('#passwd').val(),
+          dataType: "json",
+          contentType: "application/json; charset=utf-8",
+          success: function(json) {
+            if (json.result == "error") {
+              $('#alertMsg').innerHTML="<div class='alert alert-danger'>" + json.message + "</div>"
+            }
+            if (json.result =="success") {
+              $("#status").text("已经设置为新密码")
+            }
+          },
+          error: function(error) {
+            //alert("调用出错" + error.responseText);
+          }
+        });
+        document.getElementById('alertMsg').innerHTML="<div class='alert alert-info'>正在重设WIFI密码,请修改连接密码后重新连接...</div>"
+        return false;
+      }
+    </script>
+  </head>
+  <body>
+    <div class="container-fluid">
+      <div class="row">
+
+        <div class="col-xs-12 col-sm-12  col-md-6  main">
+            <div id="alertMsg"></div>
+            <form action="#" method="post" onsubmit="return setwifi();" class="well">
+            <fieldset>
+              <legend>STA设置</legend>
+              <div class="form-group">
+                <label for="ssid">状态</label>
+                <div id="status">正在获取</div>
+              </div>
+              <div class="form-group">
+                <label for="ssid">周围AP列表</label>
+                <select id="ssid" name="ssid" class="selectpicker form-control" data-live-search="true">
+                  <option value="checking">正在查询可用的WIFI接入点，请稍后...</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="password">无线密码</label>
+                <input id="password" type="password" name="password" class="form-control"/>
+              </div>
+
+              <div style="margin: 20px 0;">
+                <button type="submit" class="btn btn-primary">连接</button>
+                <button type="button" class="btn btn-primary" value="断开" onClick="diswifi();" >断开</button>
+              </div>
+            </fieldset>
+          </form>
+        </div>
+
+        <div class="col-xs-12 col-sm-12  col-md-6  main">
+          <div id="alertMsg1"></div>
+          <form action="#" method="post" onsubmit="return setpass();" class="well">
+            <fieldset>
+              <legend>AP设置</legend>
+              <div class="form-group">
+                <label for="ssid">AP名字</label>
+                <div id="ssidname">正在获取SSID...</div>
+              </div>
+              <div class="form-group">
+                <label for="passwd">无线密码</label>
+                <input id="passwd" type="password" name="passwd" class="form-control"/>
+              </div>
+
+              <div style="margin: 20px 0;">
+                <button type="submit" class="btn btn-primary">设置</button>
+              </div>
+            </fieldset>
+          </form>
+        </div>
+
+      </div>
+      <hr>
+    </div>
+
+  </body>
+  <script type="text/javascript" src="js/jquery.min.js"></script>
+  <script type="text/javascript" src="js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="js/docs.min.js"></script>
+  <script type="text/javascript" src="js/bootstrap-select.min.js"></script>
+  <script type="text/javascript">
+      $(window).on('load', function () {
+        $.ajax({
+          type: "GET", 
+          url: "/cgi-bin/aps",
+          dataType: "json",
+          contentType: "application/json; charset=utf-8",
+          success: function(json) {
+              $('.selectpicker').empty();
+              for (var key in json) {
+                  var cur_ap = json[key]
+                  var chanel = cur_ap.chanel
+                  $('.selectpicker').append("<option value=" + key +">"+ key + "</option>");
+              }
+              $('.selectpicker').selectpicker();
+          },
+          error: function(error) {
+            //alert("调用出错" + error.responseText);
+          }
+        });
+        $.ajax({
+          type: "GET", 
+          url: "/cgi-bin/checkwifi",
+          dataType: "json",
+          contentType: "application/json; charset=utf-8",
+          success: function(json) {
+              if (json.result=="success") {
+                $("#status").text("已连接路由器，ApCli IP:" + json.ip)
+              }
+              else {
+                $('#status').text("未连接路由器")
+              }
+          },
+          error: function(error) {
+            //alert("调用出错" + error.responseText);
+          }
+        });
+
+      });
+  </script>
+  <script type="text/javascript">
+    $(window).on('load', function () {
+      $.ajax({
+        type: "GET",
+        url: "/cgi-bin/getssid",
+        dataType: "json",
+        contentType: "application/json; charset=utf-8",
+        success: function(json) {
+          if (json.result == "success") {
+            $("#ssidname").text(json.ssid)
+          }
+          else {
+            $("#ssidname").text(json.message)
+          }
+        },
+        error: function(error) {
+          //alert("调用出错" + error.responseText);
+        }
+      });
+
+    });
+  </script>
+</html>
