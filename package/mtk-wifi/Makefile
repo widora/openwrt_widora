@@ -74,7 +74,8 @@ define Package/mtk-wifi/install
 	$(INSTALL_DIR) $(1)/sbin/
 	$(CP) $(PKG_BUILD_DIR)/ap_client $(1)/sbin/
 	$(INSTALL_DIR) $(1)/lib/modules/$(LINUX_VERSION)/
-	$(CP) ./wifi_ko/mt_wifi_$(LINUX_VERSION)_ate_nodebug_tmpdat.ko $(1)/lib/modules/$(LINUX_VERSION)/mt_wifi.ko
+	$(CP) ./wifi_ko/mt_wifi_lintel.ko $(1)/lib/modules/$(LINUX_VERSION)/mt_wifi.ko
+	$(CP) ./wifi_ko/eeprom.ko $(1)/lib/modules/$(LINUX_VERSION)/eeprom.ko
 	$(CP) ./files/* $(1)/
 endef
 

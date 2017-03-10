@@ -148,7 +148,7 @@ static void wifi_site_survey(const char *ifname, int print)
 	char *line, *start;
 
 	iwpriv(ifname, "SiteSurvey", "");
-	sleep(2);
+	sleep(5);
 	memset(s, 0x00, IW_SCAN_MAX_DATA);
 	strcpy(wrq.ifr_name, ifname);
 	wrq.u.data.length = IW_SCAN_MAX_DATA;
@@ -301,10 +301,10 @@ static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, cha
 			} else {
 			print_log("connect\n");
 			}
-		sleep(2);
+		sleep(8);
 		if(count ++ > 5){
 			count =0;
-			iwpriv("ra0", "HideSSID", hide);
+		//	iwpriv("ra0", "HideSSID", hide);
 		}
 		
 	}
