@@ -20,9 +20,8 @@ config wifi-device	radio0
 	option variant	$devtype
 	option country	CN
 	option hwmode	$mode
-	option htmode	HT20
-	option region 1
-	option channel  6
+	option htmode	HT40
+	option channel  auto
 	option disabled	0
 	option linkit_mode ap
 
