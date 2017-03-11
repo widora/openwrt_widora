@@ -1,0 +1,9 @@
+#!/bin/sh
+airkiss > /tmp/tmp_aac  
+line=`awk 'END{print}' /tmp/tmp_aac`    
+echo $line              
+ussid=`echo $line | awk '{print $4}'`           
+upass=`echo $line | awk '{print $8}'`           
+echo $ussid $upass              
+rm /tmp/tmp_aac
+widora_mode client $ussid $upass

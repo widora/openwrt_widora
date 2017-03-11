@@ -46,6 +46,7 @@ int set_channel(int channel)
 {
         char cmd[128] = "\0";
 	snprintf(cmd,128,"iwpriv apcli0 elian set_ch=%d",channel);
+//	snprintf(cmd,128,"iwpriv apcli0 set Channel=%d",channel);
 	system(cmd);
 	return 0;
 }
@@ -97,6 +98,10 @@ static void signal_handle(void)
     signal(SIGTERM, &exit_airkiss);//kill
     signal(SIGSEGV, &exit_airkiss);//segmentfault
     signal(SIGBUS,  &exit_airkiss);//bus error/**/
+}
+
+int udpsend(unsigned char random)
+{
 }
 
 int main(int argc, char* argv[])
