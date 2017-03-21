@@ -21,11 +21,12 @@ elif [ -z "$1" ]; then
 else
     	apass=$1
 fi
-uci set wireless.@wifi-iface[0].encryption=psk2
-uci set wireless.@wifi-iface[0].key=$apass
+uci set wireless.ap.encryption=psk2
+uci set wireless.ap.key=$apass
 uci commit
 echo "{\"result\"=\"success\",\"message\"=\"operation finished\"}"
 # Restart network service
-/etc/init.d/network restart 1>&- 2>&-
+##/etc/init.d/network restart 1>&- 2>&-
+wifi 1>&- 2>&-
 
 exit 0

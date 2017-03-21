@@ -8,6 +8,7 @@ repeater)	#repeater mode
 	[ -n "$3" ] && uci set wireless.sta.key=$3
 	uci set wireless.radio0.linkit_mode=apsta
 	uci set wireless.sta.network=lan
+	uci set wireless.sta.disabled=0
 	uci set dhcp.lan.ignore=1
 	uci set network.lan.proto='dhcp'
 	uci set network.lan.ifname='eth0'
@@ -18,6 +19,7 @@ repeater)	#repeater mode
 client)	#client mode
 	[ -n "$2" ] && uci set wireless.sta.ssid=$2
 	[ -n "$3" ] && uci set wireless.sta.key=$3
+	uci set wireless.sta.disabled=0
 	uci set wireless.radio0.linkit_mode=sta
 	uci set wireless.sta.network=wan
 	uci set network.wan=interface

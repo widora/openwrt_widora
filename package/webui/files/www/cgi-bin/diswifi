@@ -1,10 +1,10 @@
 #!/bin/sh
 echo "Content-Type: application/json"
 echo ""
-uci set wireless.@wifi-iface[0].ApCliEnable=0
+uci set wireless.sta.disabled=1
 uci commit
-nr
-sleep 5
+wifi
+sleep 1
 ip=`ifconfig apcli0 | grep 'inet addr:'| cut -d: -f2 | awk '{ print $1}'`
 if [ $ip ]; then
     echo "{\"result\":\"error\"}"
