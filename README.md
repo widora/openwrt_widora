@@ -1,3 +1,4 @@
+#Add chunix code
 #### 检查是否连外部AP，用如下命令，检查返回值ok还是no。
 ``` sh
 $ ap_client
