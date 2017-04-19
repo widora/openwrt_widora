@@ -8,7 +8,6 @@ write_ralink() {
 	local devtype=$2
 	local dev=$3
 	local mode=$4
-#	local channel=$5
 	local sta=apcli0
 
 	[ -d /sys/module/$dir ] || return
@@ -20,10 +19,9 @@ config wifi-device	radio0
 	option variant	$devtype
 	option country	CN
 	option hwmode	$mode
-	option htmode	HT40
+	option htmode	HT20
 	option channel  auto
 	option disabled	0
-	option linkit_mode ap
 
 config wifi-iface ap
 	option device   radio0
@@ -35,10 +33,10 @@ config wifi-iface ap
 
 config wifi-iface sta
 	option device   radio0
+	option disabled 1
 	option mode	sta
 	option network  wan
 	option ifname   $sta
-	option led 	mediatek:orange:wifi
 	option ssid	UplinkAp
 	option key	SecretKey
 	option encryption psk

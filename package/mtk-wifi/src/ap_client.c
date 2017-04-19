@@ -32,8 +32,6 @@ struct survey_table
 static struct survey_table st[64];
 static int survey_count = 0;
 
-static char *led_name;
-static int led_state = -1;
 
 #define DEBUG
 
@@ -75,37 +73,6 @@ int print_log(const char *fmt, ...)
 	return 0;
 }
 #endif
-
-static int led_set(char *file, char *value)
-{
-	FILE* fp;
-	char path[64];
-	snprintf(path, sizeof(path), "/sys/class/leds/%s/%s", led_name, file);
-
-	fp = fopen(path, "w");
-	if (!fp)
-		return -1;
-
-	fwrite(value, strlen(value), 1, fp);
-	fclose(fp);
-	return 0;
-}
-
-static inline void led_set_trigger(int blink)
-{
-	if (blink == led_state)
-		return;
-
-	if (blink) {
-		led_set("trigger", "timer");
-	} else {
-		led_set("trigger", "netdev");
-		led_set("device_name", "ra0");
-		led_set("mode", "tx");
-	}
-
-	blink = led_state;
-}
 
 #define RTPRIV_IOCTL_SET (SIOCIWFIRSTPRIV + 0x02)
 static void iwpriv(const char *name, const char *key, const char *val)
@@ -310,25 +277,14 @@ static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, cha
 	}
 }
 
-static int main_led(int argc, char **argv)
-{
-	led_name = argv[1];
-	if (!strcmp(argv[2], "set")) {
-		led_set("trigger", "mtk-wifi");
-	} else {
-		led_set("trigger", "none");
-		led_set("brightness", "0");
-	}
-	return 0;
-}
 
 int main(int argc, char **argv)
 {
 	FILE *fp;
 	char path[256];
 
-	if (argc == 3)
-		return main_led(argc, argv);
+//	if (argc == 3)
+//		return main_led(argc, argv);
 	if (argc == 1)
 	{
 		if(check_assoc("apcli0")){
@@ -338,7 +294,7 @@ int main(int argc, char **argv)
 		}
 		return 0;
 	}
-	if (argc < 7)
+	if (argc < 6)
 		return -1;
 
 	daemon(0, 0);
@@ -351,11 +307,10 @@ int main(int argc, char **argv)
 	print_log("main\n");
 	setbuf(stdout, NULL);
 	openlog("ap_client", 0, 0);
-	if (argc > 7)
-		led_name = argv[7];
+
 
 //	led_set_trigger(1);
-	print_log("loop:%s,%s,%s,%s,%s,%s,%s\n",argv[1], argv[2], argv[3], argv[4], argv[5], argv[6],argv[7]);
+//	print_log("loop:%s,%s,%s,%s,%s,%s,%s\n",argv[1], argv[2], argv[3], argv[4], argv[5], argv[6],argv[7]);
 	assoc_loop(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
 
 	return 0;
