@@ -1,0 +1,41 @@
+#!/bin/sh
+
+assid=''
+apass=''
+if [ -n "$QUERY_STRING" ]; then
+    echo "Content-Type: application/json"
+    echo ""
+	firstexp=`echo $QUERY_STRING | cut -d'&' -f 1`
+	firstkey=`echo $firstexp | cut -d'=' -f 1`
+	firstvalue=`echo $firstexp | cut -d'=' -f 2`
+	secondexp=`echo $QUERY_STRING | cut -d'&' -f 2`
+	secondkey=`echo $secondexp | cut -d'=' -f 1`
+	secondvalue=`echo $secondexp | cut -d'=' -f 2`
+if [ "$firstkey"x = "ssid"x ] && [ "$secondkey"x = "password"x -o "$secondkey"x = "passwd"x ]; then
+		assid=$firstvalue
+		apass=$secondvalue
+	elif [ "$secondkey"x = "ssid"x ] && [ "$firstkey"x = "password"x -o "$firstkey"x = "passwd"x ]; then
+		assid=$secondvalue
+		apass=$firstvalue
+	else
+		echo "{\"result\"=\"error\",\"message\"=\"Please input the right format like ssid=xxxx&passwd=yyyy\"}"
+		exit 1
+	fi
+   	
+elif [ -z "$1" -o -z "$2" ]; then
+    	echo "Need to specify ssid and password, like setwifi ssid password"
+    	exit 2
+else
+	assid=$1
+    	apass=$2
+fi
+uci set wireless.ap.ssid=$assid
+uci set wireless.ap.encryption=psk2
+uci set wireless.ap.key=$apass
+uci commit
+echo "{\"result\"=\"success\",\"message\"=\"operation finished\"}"
+# Restart network service
+##/etc/init.d/network restart 1>&- 2>&-
+wifi 1>&- 2>&-
+
+exit 0
