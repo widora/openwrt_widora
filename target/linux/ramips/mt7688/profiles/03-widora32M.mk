@@ -21,7 +21,7 @@ define Profile/Widora32M
 		kmod-video-core kmod-video-uvc \
 		kmod-sound-core kmod-sound-mtk madplay-alsa alsa-utils \
 		mtk-wifi airkiss webui ated \
-        	maccalc shairport_mmap reg
+        	maccalc shairport_mmap reg ser2net
 endef
 
 define Profile/Widora32M/Description
