@@ -63,13 +63,16 @@ esac
 
 else
 echo "---------------------------------------------------"
-echo "widora help"
+echo "widora_mode help"
 echo "MODE |   REPEATER     |  CLIENT  | ROUTER PPPOE |"
-echo "LAN  | eth0 ap apcli0 | eth0  ap | ap           |"
-echo "WAN  |                | apcli0   | eth0         |"
-echo "\"widora repeater\" or \"widora repeater ssid key\""
-echo "\"widora client\" or \"widora client ssid key\""
-echo "\"widora router\""
-echo "\"widora pppoe\" or \"widora pppoe name key\""
+echo "LAN  | eth0 ra0 apcli0|  eth0    | ra0          |"
+echo "WAN  |                |  apcli0  | eth0         |"
+echo "\"widora_mode repeater\""
+echo "\"widora_mode repeater ssid key\""
+echo "\"widora_mode client\""
+echo "\"widora_mode client ssid key\""
+echo "\"widora_mode router\""
+echo "\"widora_mode pppoe\""
+echo "\"widora_mode pppoe user_name password\""
 echo "---------------------------------------------------"
 fi
