@@ -30,6 +30,7 @@ config wifi-iface ap
 	option ifname   $dev
 	option ssid	Widora-$(cat /sys/class/net/eth0/address|awk -F ":" '{print $5""$6}'| tr a-z A-Z)
 	option encryption none 
+	option hidden    0
 
 config wifi-iface sta
 	option device   radio0
@@ -49,7 +50,7 @@ detect_ralink() {
 	cpu=$(awk 'BEGIN{FS="[ \t]+: MediaTek[ \t]"} /system type/ {print $2}' /proc/cpuinfo | cut -d" " -f1)
 	case $cpu in
 	MT7688)
-		write_ralink mt_wifi mt7628 ra0 11g
+		write_ralink mt_wifi mt7628 ra0 11bgn
 		;;
 	esac
 

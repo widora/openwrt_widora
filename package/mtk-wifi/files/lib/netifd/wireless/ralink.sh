@@ -127,7 +127,6 @@ ralink_setup_ap(){
 
 ralink_setup_sta(){
 	local name="$1"
-	local hide=1
 	json_select config
 	json_get_vars mode apname ifname ssid bssid encryption key key1 key2 key3 key4 wps_pushbutton
 
@@ -141,16 +140,15 @@ ralink_setup_sta(){
 	esac
 	json_select ..
 	killall ap_client
-	/sbin/ap_client "ra0" "$ifname" "${ssid}" "${key}" "${bssid}" "${hide}"
+	/sbin/ap_client "ra0" "$ifname" "${ssid}" "${key}" "${bssid}"
 	sleep 1
-	wireless_add_process "$(cat /tmp/apcli-${ifname}.pid)" /sbin/ap_client ra0 "$ifname" "${ssid}" "${key}" "${bssid}" "${hide}"
+	wireless_add_process "$(cat /tmp/apcli-${ifname}.pid)" /sbin/ap_client ra0 "$ifname" "${ssid}" "${key}" "${bssid}"
 
 	wireless_add_vif "$name" "$ifname"
 }
 
 drv_ralink_setup() {
 	local ifname="$1"
-	local bcn_active=1
 	wmode=9
 	VHT=0
 	VHT_SGI=0
@@ -159,13 +157,19 @@ drv_ralink_setup() {
 
 
 	json_select config
-	json_get_vars variant region country channel htmode log_level short_preamble noscan:0
+	json_get_vars variant region country channel htmode hwmode log_level short_preamble noscan:0 
 	json_select ..
 
-	[ -z "$region" ] && region=0
+	[ -z "$region" ] && region=1
 
 	[ "$short_preamble" = 1 ] || short_preamble=0 
-
+		
+	case $hwmode in
+	11b) wmode=1;;
+	11g) wmode=4;;
+	11n) wmode=6;;
+	11bgn) wmode=9;;
+	esac
 	case ${htmode:-none} in
 	HT20)
 		wmode=9
@@ -175,12 +179,6 @@ drv_ralink_setup() {
 		wmode=9
 		HT=1
 		EXTCHA=1
-		;;
-	*)
-		case $hwmode in
-		a) wmode=2;;
-		g) wmode=3;;
-		esac
 		;;
 	esac
 
@@ -198,7 +196,6 @@ drv_ralink_setup() {
 
 	cat /etc/Wireless/${variant}_tpl.dat > /tmp/${variant}.dat
 	cat >> /tmp/${variant}.dat<<EOF
-Beacon=${bcn_active}
 BssidNum=4
 HT_BW=${HT:-0}
 HT_EXTCHA=${EXTCHA:-0}
