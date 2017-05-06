@@ -1,0 +1,18 @@
+#!/bin/sh
+
+[ "${ACTION}" = "released" -o "${ACTION}" = "timeout" ] || exit 21
+
+. /lib/functions.sh
+
+echo "$BUTTON pressed for $SEEN seconds" > /dev/console
+
+# factory reset
+if [ "$SEEN" -gt 1 ]
+then
+        echo "FACTORY RESET" > /dev/console
+        jffs2reset -y
+        sync
+        reboot
+fi
+
+return 0
