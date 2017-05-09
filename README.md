@@ -1,10 +1,12 @@
-#### 检查是否连外部AP，用如下命令，检查返回值ok还是no。
+#### Hello everybody
+  * [Follow us on Twitter](https://twitter.com/mangogeek/)
+#### how to check if connected to some AP? use ap_client command,check return is ok or no
 ``` sh
 $ ap_client
 ```
 ok is connected
 no is not connected
-#### 设置板子工作模式的命令
+#### set the board mode.
 ```sh
 $ widora_mode
 ```
