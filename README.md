@@ -8,7 +8,9 @@ ok is connected
 no is not connected
 #### branch
 master:the default firmware,only port0
+
 wllll:port0 is WAN, port1-port4 is LAN
+
 nojffs2: fix the Small probability file system crashes,wait to merge master
 
 #### set the board mode.
