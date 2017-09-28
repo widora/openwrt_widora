@@ -1,6 +1,6 @@
 config system
 	option hostname	Widora
-	option timezone	UTC
+	option timezone	CST-8
 
 config timeserver ntp
 	list server	0.openwrt.pool.ntp.org
