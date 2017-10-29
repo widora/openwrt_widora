@@ -4,8 +4,14 @@ wifi down
 sleep 1
 case $1 in
 repeater)	#repeater mode
-	[ -n "$2" ] && uci set wireless.sta.ssid="$2"
-	[ -n "$3" ] && uci set wireless.sta.key="$3"
+	if [ -n "$2" ];then
+	uci set wireless.sta.ssid="$2"
+	if [ -n "$3" ];then 
+	uci set wireless.sta.key="$3"
+	else
+	uci delete wireless.sta.key
+	fi
+	fi
 	uci set wireless.sta.network=lan
 	uci set wireless.sta.disabled=0
 	uci set wireless.ap.hidden=0
@@ -17,8 +23,14 @@ repeater)	#repeater mode
 	/etc/init.d/network restart
 	;;
 client)	#client mode
-	[ -n "$2" ] && uci set wireless.sta.ssid="$2"
-	[ -n "$3" ] && uci set wireless.sta.key="$3"
+	if [ -n "$2" ];then
+	uci set wireless.sta.ssid="$2"
+	if [ -n "$3" ];then 
+	uci set wireless.sta.key="$3"
+	else
+	uci delete wireless.sta.key
+	fi
+	fi
 	uci set wireless.sta.disabled=0
 	uci set wireless.sta.network=wan
 	uci set wireless.ap.hidden=1

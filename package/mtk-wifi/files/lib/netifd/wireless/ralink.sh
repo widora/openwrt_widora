@@ -133,11 +133,6 @@ ralink_setup_sta(){
 	sta_mode="$(uci get wireless.sta.disabled)"
 	[ "${sta_mode}" == "1" ] && return
 
-	key=
-	case "$encryption" in
-		psk*|mixed*) json_get_vars key;;
-		wep) json_get_var key key1;;
-	esac
 	json_select ..
 	killall ap_client
 	/sbin/ap_client "ra0" "$ifname" "${ssid}" "${key}" "${bssid}"

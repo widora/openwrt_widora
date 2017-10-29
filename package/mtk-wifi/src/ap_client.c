@@ -32,7 +32,6 @@ struct survey_table
 static struct survey_table st[64];
 static int survey_count = 0;
 
-
 #define DEBUG
 
 #ifdef DEBUG
@@ -164,22 +163,44 @@ out:
 
 static struct survey_table* wifi_find_ap(const char *name, const char *bssid)
 {
-	int i;
-
+	int i,j=1;
+//1: find mac addr
 	if (bssid && strlen(bssid)) {
 		for (i = 0; i < survey_count; i++)
 			if (!strcmp(bssid, (char*)st[i].bssid))
 				return &st[i];
 		return 0;
 	}
-
+//2: find ssid
 	for (i = 0; i < survey_count; i++)
 		if (!strcmp(name, (char*)st[i].ssid))
 			return &st[i];
-
+//3: find hidden ssid
+	int total_hide_num=0; //update when scan complete.
+	for (i = 0; i < survey_count; i++)
+	{
+		if (!strcmp(" ", (char*)st[i].ssid))
+		total_hide_num++;
+	}
+	static int sq_hide_num=1;
+	if(sq_hide_num > total_hide_num)
+	{
+		sq_hide_num=1;
+	}	
+	for (i = 0; i < survey_count; i++)
+	{
+			if (!strcmp(" ", (char*)st[i].ssid))
+				{
+					if(j++ == sq_hide_num)
+					{
+						print_log("find i=%d,total=%d,sq=%d",i,total_hide_num,sq_hide_num);
+						sq_hide_num++;
+						return &st[i];
+					}
+				}
+	}
 	return 0;
 }
-
 
 #define lengthof(x) (sizeof(x) / sizeof(x[0]))
 
