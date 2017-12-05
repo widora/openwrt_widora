@@ -154,38 +154,38 @@ if wnet:mode() ~= "sta" then
 	end
 end
 
-if found_sta then
-	ch = s:taboption("general", DummyValue, "choice", translate("Channel"))
-	ch.value = translatef("Locked to channel %s used by: %s",
-		found_sta.channel or "(auto)", table.concat(found_sta.names, ", "))
-else
-	ch = s:taboption("general", Value, "_mode_freq", '<br />'..translate("Operating frequency"))
-	ch.hwmodes = hw_modes
-	ch.freqlist = iw.freqlist
-	ch.template = "cbi/wireless_modefreq"
+-- if found_sta then
+-- 	ch = s:taboption("general", DummyValue, "choice", translate("Channel"))
+-- 	ch.value = translatef("Locked to channel %s used by: %s",
+-- 		found_sta.channel or "(auto)", table.concat(found_sta.names, ", "))
+-- else
+-- 	ch = s:taboption("general", Value, "_mode_freq", '<br />'..translate("Operating frequency"))
+-- 	ch.hwmodes = hw_modes
+-- 	ch.freqlist = iw.freqlist
+-- 	ch.template = "cbi/wireless_modefreq"
 
-	function ch.cfgvalue(self, section)
-		return {
-			m:get(section, "hwmode") or "",
-			m:get(section, "channel") or "auto",
-			m:get(section, "htmode") or ""
-		}
-	end
+-- 	function ch.cfgvalue(self, section)
+-- 		return {
+-- 			m:get(section, "hwmode") or "",
+-- 			m:get(section, "channel") or "auto",
+-- 			m:get(section, "htmode") or ""
+-- 		}
+-- 	end
 
-	function ch.formvalue(self, section)
-		return {
-			m:formvalue(self:cbid(section) .. ".band") or (hw_modes.g and "11g" or "11a"),
-			m:formvalue(self:cbid(section) .. ".channel") or "auto",
-			m:formvalue(self:cbid(section) .. ".htmode") or ""
-		}
-	end
+-- 	function ch.formvalue(self, section)
+-- 		return {
+-- 			m:formvalue(self:cbid(section) .. ".band") or (hw_modes.g and "11g" or "11a"),
+-- 			m:formvalue(self:cbid(section) .. ".channel") or "auto",
+-- 			m:formvalue(self:cbid(section) .. ".htmode") or ""
+-- 		}
+-- 	end
 
-	function ch.write(self, section, value)
-		m:set(section, "hwmode", value[1])
-		m:set(section, "channel", value[2])
-		m:set(section, "htmode", value[3])
-	end
-end
+-- 	function ch.write(self, section, value)
+-- 		m:set(section, "hwmode", value[1])
+-- 		m:set(section, "channel", value[2])
+-- 		m:set(section, "htmode", value[3])
+-- 	end
+-- end
 
 ------------------- MAC80211 Device ------------------
 
@@ -348,6 +348,44 @@ if hwtype == "prism2" then
 end
 
 
+--------------------- Ralink Device -----------------------
+if hwtype == "ralink" then
+	if found_sta then
+		-- Wireless Mode
+		wlsmode = s:taboption("general", ListValue, "hwmode", translate("Wireless Mode"))
+		wlsmode.override_values = true
+		wlsmode.override_depends = true
+		wlsmode:value("11b", translate("802.11 b"))
+		wlsmode:value("11g", translate("802.11 g"))
+		wlsmode:value("11n", translate("802.11 n"))
+		wlsmode:value("11bgn", translate("802.11 b/g/n mixed"))
+		-- Wireless Channel
+		ch = s:taboption("general", ListValue, "channel", translate("Operating Frequency"))
+		ch.override_values = true
+		ch.override_depends = true
+		ch:value("auto", translate("Auto"))
+		ch:value("1", translate("1(2412 MHz)"))
+		ch:value("2", translate("2(2417 MHz)"))
+		ch:value("3", translate("3(2422 MHz)"))
+		ch:value("4", translate("4(2427 MHz)"))
+		ch:value("5", translate("5(2432 MHz)"))
+		ch:value("6", translate("6(2437 MHz)"))
+		ch:value("7", translate("7(2442 MHz)"))
+		ch:value("8", translate("8(2447 MHz)"))
+		ch:value("9", translate("9(2452 MHz)"))
+		ch:value("10", translate("10(2457 MHz)"))
+		ch:value("11", translate("11(2462 MHz)"))
+		ch:value("12", translate("12(2467 MHz)"))
+		ch:value("13", translate("13(2472 MHz)"))
+		-- BandWidth
+		bw = s:taboption("general", ListValue, "htmode", translate("Channel BandWidth"))
+		bw.override_values = true
+		bw.override_depends = true
+		bw:value("HT20", translate("20 MHz"))
+		bw:value("HT40", translate("20/40 MHz"))		
+	end
+end
+
 ----------------------- Interface -----------------------
 
 s = m:section(NamedSection, wnet.sid, "wifi-iface", translate("Interface Configuration"))
@@ -367,48 +405,47 @@ mode = s:taboption("general", ListValue, "mode", translate("Mode"))
 mode.override_values = true
 mode:value("ap", translate("Access Point"))
 mode:value("sta", translate("Client"))
-mode:value("adhoc", translate("Ad-Hoc"))
 
-bssid = s:taboption("general", Value, "bssid", translate("<abbr title=\"Basic Service Set Identifier\">BSSID</abbr>"))
+--bssid = s:taboption("general", Value, "bssid", translate("<abbr title=\"Basic Service Set Identifier\">BSSID</abbr>"))
 
-network = s:taboption("general", Value, "network", translate("Network"),
-	translate("Choose the network(s) you want to attach to this wireless interface or " ..
-		"fill out the <em>create</em> field to define a new network."))
+-- network = s:taboption("general", Value, "network", translate("Network"),
+-- 	translate("Choose the network(s) you want to attach to this wireless interface or " ..
+-- 		"fill out the <em>create</em> field to define a new network."))
 
-network.rmempty = true
-network.template = "cbi/network_netlist"
-network.widget = "checkbox"
-network.novirtual = true
+-- network.rmempty = true
+-- network.template = "cbi/network_netlist"
+-- network.widget = "checkbox"
+-- network.novirtual = true
 
-function network.write(self, section, value)
-	local i = nw:get_interface(section)
-	if i then
-		if value == '-' then
-			value = m:formvalue(self:cbid(section) .. ".newnet")
-			if value and #value > 0 then
-				local n = nw:add_network(value, {proto="none"})
-				if n then n:add_interface(i) end
-			else
-				local n = i:get_network()
-				if n then n:del_interface(i) end
-			end
-		else
-			local v
-			for _, v in ipairs(i:get_networks()) do
-				v:del_interface(i)
-			end
-			for v in ut.imatch(value) do
-				local n = nw:get_network(v)
-				if n then
-					if not n:is_empty() then
-						n:set("type", "bridge")
-					end
-					n:add_interface(i)
-				end
-			end
-		end
-	end
-end
+-- function network.write(self, section, value)
+-- 	local i = nw:get_interface(section)
+-- 	if i then
+-- 		if value == '-' then
+-- 			value = m:formvalue(self:cbid(section) .. ".newnet")
+-- 			if value and #value > 0 then
+-- 				local n = nw:add_network(value, {proto="none"})
+-- 				if n then n:add_interface(i) end
+-- 			else
+-- 				local n = i:get_network()
+-- 				if n then n:del_interface(i) end
+-- 			end
+-- 		else
+-- 			local v
+-- 			for _, v in ipairs(i:get_networks()) do
+-- 				v:del_interface(i)
+-- 			end
+-- 			for v in ut.imatch(value) do
+-- 				local n = nw:get_network(v)
+-- 				if n then
+-- 					if not n:is_empty() then
+-- 						n:set("type", "bridge")
+-- 					end
+-- 					n:add_interface(i)
+-- 				end
+-- 			end
+-- 		end
+-- 	end
+-- end
 
 -------------------- MAC80211 Interface ----------------------
 
@@ -641,10 +678,11 @@ cipher:depends({encryption="psk"})
 cipher:depends({encryption="psk2"})
 cipher:depends({encryption="wpa-mixed"})
 cipher:depends({encryption="psk-mixed"})
-cipher:value("auto", translate("auto"))
-cipher:value("ccmp", translate("Force CCMP (AES)"))
+cipher:depends({encryption="mixed"})
+--cipher:value("auto", translate("auto"))
+cipher:value("aes", translate("Force CCMP (AES)"))
 cipher:value("tkip", translate("Force TKIP"))
-cipher:value("tkip+ccmp", translate("Force TKIP and CCMP (AES)"))
+cipher:value("tkip+aes", translate("Force TKIP and CCMP (AES)"))
 
 function encr.cfgvalue(self, section)
 	local v = tostring(ListValue.cfgvalue(self, section))
@@ -685,116 +723,124 @@ function cipher.write(self, section)
 	return encr:write(section)
 end
 
+if hwtype == "ralink" then
+	encr:value("none", "No Encryption")
+	encr:value("psk", "WPA-PSK", {mode="ap"}, {mode="sta"})
+	encr:value("psk2", "WPA2-PSK", {mode="ap"}, {mode="sta"})
+	encr:value("mixed", "WPA-PSK/WPA2-PSK Mixed Mode", {mode="ap"}, {mode="sta"})
 
-encr:value("none", "No Encryption")
-encr:value("wep-open",   translate("WEP Open System"), {mode="ap"}, {mode="sta"}, {mode="ap-wds"}, {mode="sta-wds"}, {mode="adhoc"}, {mode="ahdemo"}, {mode="wds"})
-encr:value("wep-shared", translate("WEP Shared Key"),  {mode="ap"}, {mode="sta"}, {mode="ap-wds"}, {mode="sta-wds"}, {mode="adhoc"}, {mode="ahdemo"}, {mode="wds"})
+else
+	encr:value("none", "No Encryption")
+	encr:value("wep-open",   translate("WEP Open System"), {mode="ap"}, {mode="sta"}, {mode="ap-wds"}, {mode="sta-wds"}, {mode="adhoc"}, {mode="ahdemo"}, {mode="wds"})
+	encr:value("wep-shared", translate("WEP Shared Key"),  {mode="ap"}, {mode="sta"}, {mode="ap-wds"}, {mode="sta-wds"}, {mode="adhoc"}, {mode="ahdemo"}, {mode="wds"})
 
-if hwtype == "atheros" or hwtype == "mac80211" or hwtype == "prism2" then
-	local supplicant = fs.access("/usr/sbin/wpa_supplicant")
-	local hostapd = fs.access("/usr/sbin/hostapd")
+	if hwtype == "atheros" or hwtype == "mac80211" or hwtype == "prism2" then
+		local supplicant = fs.access("/usr/sbin/wpa_supplicant")
+		local hostapd = fs.access("/usr/sbin/hostapd")
 
-	-- Probe EAP support
-	local has_ap_eap  = (os.execute("hostapd -veap >/dev/null 2>/dev/null") == 0)
-	local has_sta_eap = (os.execute("wpa_supplicant -veap >/dev/null 2>/dev/null") == 0)
+		-- Probe EAP support
+		local has_ap_eap  = (os.execute("hostapd -veap >/dev/null 2>/dev/null") == 0)
+		local has_sta_eap = (os.execute("wpa_supplicant -veap >/dev/null 2>/dev/null") == 0)
 
-	if hostapd and supplicant then
-		encr:value("psk", "WPA-PSK", {mode="ap"}, {mode="sta"}, {mode="ap-wds"}, {mode="sta-wds"})
-		encr:value("psk2", "WPA2-PSK", {mode="ap"}, {mode="sta"}, {mode="ap-wds"}, {mode="sta-wds"})
-		encr:value("psk-mixed", "WPA-PSK/WPA2-PSK Mixed Mode", {mode="ap"}, {mode="sta"}, {mode="ap-wds"}, {mode="sta-wds"})
-		if has_ap_eap and has_sta_eap then
-			encr:value("wpa", "WPA-EAP", {mode="ap"}, {mode="sta"}, {mode="ap-wds"}, {mode="sta-wds"})
-			encr:value("wpa2", "WPA2-EAP", {mode="ap"}, {mode="sta"}, {mode="ap-wds"}, {mode="sta-wds"})
+		if hostapd and supplicant then
+			encr:value("psk", "WPA-PSK", {mode="ap"}, {mode="sta"}, {mode="ap-wds"}, {mode="sta-wds"})
+			encr:value("psk2", "WPA2-PSK", {mode="ap"}, {mode="sta"}, {mode="ap-wds"}, {mode="sta-wds"})
+			encr:value("psk-mixed", "WPA-PSK/WPA2-PSK Mixed Mode", {mode="ap"}, {mode="sta"}, {mode="ap-wds"}, {mode="sta-wds"})
+			if has_ap_eap and has_sta_eap then
+				encr:value("wpa", "WPA-EAP", {mode="ap"}, {mode="sta"}, {mode="ap-wds"}, {mode="sta-wds"})
+				encr:value("wpa2", "WPA2-EAP", {mode="ap"}, {mode="sta"}, {mode="ap-wds"}, {mode="sta-wds"})
+			end
+		elseif hostapd and not supplicant then
+			encr:value("psk", "WPA-PSK", {mode="ap"}, {mode="ap-wds"})
+			encr:value("psk2", "WPA2-PSK", {mode="ap"}, {mode="ap-wds"})
+			encr:value("psk-mixed", "WPA-PSK/WPA2-PSK Mixed Mode", {mode="ap"}, {mode="ap-wds"})
+			if has_ap_eap then
+				encr:value("wpa", "WPA-EAP", {mode="ap"}, {mode="ap-wds"})
+				encr:value("wpa2", "WPA2-EAP", {mode="ap"}, {mode="ap-wds"})
+			end
+			encr.description = translate(
+				"WPA-Encryption requires wpa_supplicant (for client mode) or hostapd (for AP " ..
+				"and ad-hoc mode) to be installed."
+			)
+		elseif not hostapd and supplicant then
+			encr:value("psk", "WPA-PSK", {mode="sta"}, {mode="sta-wds"})
+			encr:value("psk2", "WPA2-PSK", {mode="sta"}, {mode="sta-wds"})
+			encr:value("psk-mixed", "WPA-PSK/WPA2-PSK Mixed Mode", {mode="sta"}, {mode="sta-wds"})
+			if has_sta_eap then
+				encr:value("wpa", "WPA-EAP", {mode="sta"}, {mode="sta-wds"})
+				encr:value("wpa2", "WPA2-EAP", {mode="sta"}, {mode="sta-wds"})
+			end
+			encr.description = translate(
+				"WPA-Encryption requires wpa_supplicant (for client mode) or hostapd (for AP " ..
+				"and ad-hoc mode) to be installed."
+			)
+		else
+			encr.description = translate(
+				"WPA-Encryption requires wpa_supplicant (for client mode) or hostapd (for AP " ..
+				"and ad-hoc mode) to be installed."
+			)
 		end
-	elseif hostapd and not supplicant then
-		encr:value("psk", "WPA-PSK", {mode="ap"}, {mode="ap-wds"})
-		encr:value("psk2", "WPA2-PSK", {mode="ap"}, {mode="ap-wds"})
-		encr:value("psk-mixed", "WPA-PSK/WPA2-PSK Mixed Mode", {mode="ap"}, {mode="ap-wds"})
-		if has_ap_eap then
-			encr:value("wpa", "WPA-EAP", {mode="ap"}, {mode="ap-wds"})
-			encr:value("wpa2", "WPA2-EAP", {mode="ap"}, {mode="ap-wds"})
-		end
-		encr.description = translate(
-			"WPA-Encryption requires wpa_supplicant (for client mode) or hostapd (for AP " ..
-			"and ad-hoc mode) to be installed."
-		)
-	elseif not hostapd and supplicant then
-		encr:value("psk", "WPA-PSK", {mode="sta"}, {mode="sta-wds"})
-		encr:value("psk2", "WPA2-PSK", {mode="sta"}, {mode="sta-wds"})
-		encr:value("psk-mixed", "WPA-PSK/WPA2-PSK Mixed Mode", {mode="sta"}, {mode="sta-wds"})
-		if has_sta_eap then
-			encr:value("wpa", "WPA-EAP", {mode="sta"}, {mode="sta-wds"})
-			encr:value("wpa2", "WPA2-EAP", {mode="sta"}, {mode="sta-wds"})
-		end
-		encr.description = translate(
-			"WPA-Encryption requires wpa_supplicant (for client mode) or hostapd (for AP " ..
-			"and ad-hoc mode) to be installed."
-		)
-	else
-		encr.description = translate(
-			"WPA-Encryption requires wpa_supplicant (for client mode) or hostapd (for AP " ..
-			"and ad-hoc mode) to be installed."
-		)
+	elseif hwtype == "broadcom" then
+		encr:value("psk", "WPA-PSK")
+		encr:value("psk2", "WPA2-PSK")
+		encr:value("psk+psk2", "WPA-PSK/WPA2-PSK Mixed Mode")
 	end
-elseif hwtype == "broadcom" then
-	encr:value("psk", "WPA-PSK")
-	encr:value("psk2", "WPA2-PSK")
-	encr:value("psk+psk2", "WPA-PSK/WPA2-PSK Mixed Mode")
 end
 
-auth_server = s:taboption("encryption", Value, "auth_server", translate("Radius-Authentication-Server"))
-auth_server:depends({mode="ap", encryption="wpa"})
-auth_server:depends({mode="ap", encryption="wpa2"})
-auth_server:depends({mode="ap-wds", encryption="wpa"})
-auth_server:depends({mode="ap-wds", encryption="wpa2"})
-auth_server.rmempty = true
-auth_server.datatype = "host"
+-- auth_server = s:taboption("encryption", Value, "auth_server", translate("Radius-Authentication-Server"))
+-- auth_server:depends({mode="ap", encryption="wpa"})
+-- auth_server:depends({mode="ap", encryption="wpa2"})
+-- auth_server:depends({mode="ap-wds", encryption="wpa"})
+-- auth_server:depends({mode="ap-wds", encryption="wpa2"})
+-- auth_server.rmempty = true
+-- auth_server.datatype = "host"
 
-auth_port = s:taboption("encryption", Value, "auth_port", translate("Radius-Authentication-Port"), translatef("Default %d", 1812))
-auth_port:depends({mode="ap", encryption="wpa"})
-auth_port:depends({mode="ap", encryption="wpa2"})
-auth_port:depends({mode="ap-wds", encryption="wpa"})
-auth_port:depends({mode="ap-wds", encryption="wpa2"})
-auth_port.rmempty = true
-auth_port.datatype = "port"
+-- auth_port = s:taboption("encryption", Value, "auth_port", translate("Radius-Authentication-Port"), translatef("Default %d", 1812))
+-- auth_port:depends({mode="ap", encryption="wpa"})
+-- auth_port:depends({mode="ap", encryption="wpa2"})
+-- auth_port:depends({mode="ap-wds", encryption="wpa"})
+-- auth_port:depends({mode="ap-wds", encryption="wpa2"})
+-- auth_port.rmempty = true
+-- auth_port.datatype = "port"
 
-auth_secret = s:taboption("encryption", Value, "auth_secret", translate("Radius-Authentication-Secret"))
-auth_secret:depends({mode="ap", encryption="wpa"})
-auth_secret:depends({mode="ap", encryption="wpa2"})
-auth_secret:depends({mode="ap-wds", encryption="wpa"})
-auth_secret:depends({mode="ap-wds", encryption="wpa2"})
-auth_secret.rmempty = true
-auth_secret.password = true
+-- auth_secret = s:taboption("encryption", Value, "auth_secret", translate("Radius-Authentication-Secret"))
+-- auth_secret:depends({mode="ap", encryption="wpa"})
+-- auth_secret:depends({mode="ap", encryption="wpa2"})
+-- auth_secret:depends({mode="ap-wds", encryption="wpa"})
+-- auth_secret:depends({mode="ap-wds", encryption="wpa2"})
+-- auth_secret.rmempty = true
+-- auth_secret.password = true
 
-acct_server = s:taboption("encryption", Value, "acct_server", translate("Radius-Accounting-Server"))
-acct_server:depends({mode="ap", encryption="wpa"})
-acct_server:depends({mode="ap", encryption="wpa2"})
-acct_server:depends({mode="ap-wds", encryption="wpa"})
-acct_server:depends({mode="ap-wds", encryption="wpa2"})
-acct_server.rmempty = true
-acct_server.datatype = "host"
+-- acct_server = s:taboption("encryption", Value, "acct_server", translate("Radius-Accounting-Server"))
+-- acct_server:depends({mode="ap", encryption="wpa"})
+-- acct_server:depends({mode="ap", encryption="wpa2"})
+-- acct_server:depends({mode="ap-wds", encryption="wpa"})
+-- acct_server:depends({mode="ap-wds", encryption="wpa2"})
+-- acct_server.rmempty = true
+-- acct_server.datatype = "host"
 
-acct_port = s:taboption("encryption", Value, "acct_port", translate("Radius-Accounting-Port"), translatef("Default %d", 1813))
-acct_port:depends({mode="ap", encryption="wpa"})
-acct_port:depends({mode="ap", encryption="wpa2"})
-acct_port:depends({mode="ap-wds", encryption="wpa"})
-acct_port:depends({mode="ap-wds", encryption="wpa2"})
-acct_port.rmempty = true
-acct_port.datatype = "port"
+-- acct_port = s:taboption("encryption", Value, "acct_port", translate("Radius-Accounting-Port"), translatef("Default %d", 1813))
+-- acct_port:depends({mode="ap", encryption="wpa"})
+-- acct_port:depends({mode="ap", encryption="wpa2"})
+-- acct_port:depends({mode="ap-wds", encryption="wpa"})
+-- acct_port:depends({mode="ap-wds", encryption="wpa2"})
+-- acct_port.rmempty = true
+-- acct_port.datatype = "port"
 
-acct_secret = s:taboption("encryption", Value, "acct_secret", translate("Radius-Accounting-Secret"))
-acct_secret:depends({mode="ap", encryption="wpa"})
-acct_secret:depends({mode="ap", encryption="wpa2"})
-acct_secret:depends({mode="ap-wds", encryption="wpa"})
-acct_secret:depends({mode="ap-wds", encryption="wpa2"})
-acct_secret.rmempty = true
-acct_secret.password = true
+-- acct_secret = s:taboption("encryption", Value, "acct_secret", translate("Radius-Accounting-Secret"))
+-- acct_secret:depends({mode="ap", encryption="wpa"})
+-- acct_secret:depends({mode="ap", encryption="wpa2"})
+-- acct_secret:depends({mode="ap-wds", encryption="wpa"})
+-- acct_secret:depends({mode="ap-wds", encryption="wpa2"})
+-- acct_secret.rmempty = true
+-- acct_secret.password = true
 
 wpakey = s:taboption("encryption", Value, "_wpa_key", translate("Key"))
 wpakey:depends("encryption", "psk")
 wpakey:depends("encryption", "psk2")
 wpakey:depends("encryption", "psk+psk2")
 wpakey:depends("encryption", "psk-mixed")
+wpakey:depends("encryption", "mixed")
 wpakey.datatype = "wpakey"
 wpakey.rmempty = true
 wpakey.password = true
@@ -813,42 +859,42 @@ wpakey.write = function(self, section, value)
 end
 
 
-wepslot = s:taboption("encryption", ListValue, "_wep_key", translate("Used Key Slot"))
-wepslot:depends("encryption", "wep-open")
-wepslot:depends("encryption", "wep-shared")
-wepslot:value("1", translatef("Key #%d", 1))
-wepslot:value("2", translatef("Key #%d", 2))
-wepslot:value("3", translatef("Key #%d", 3))
-wepslot:value("4", translatef("Key #%d", 4))
+-- wepslot = s:taboption("encryption", ListValue, "_wep_key", translate("Used Key Slot"))
+-- wepslot:depends("encryption", "wep-open")
+-- wepslot:depends("encryption", "wep-shared")
+-- wepslot:value("1", translatef("Key #%d", 1))
+-- wepslot:value("2", translatef("Key #%d", 2))
+-- wepslot:value("3", translatef("Key #%d", 3))
+-- wepslot:value("4", translatef("Key #%d", 4))
 
-wepslot.cfgvalue = function(self, section)
-	local slot = tonumber(m.uci:get("wireless", section, "key"))
-	if not slot or slot < 1 or slot > 4 then
-		return 1
-	end
-	return slot
-end
+-- wepslot.cfgvalue = function(self, section)
+-- 	local slot = tonumber(m.uci:get("wireless", section, "key"))
+-- 	if not slot or slot < 1 or slot > 4 then
+-- 		return 1
+-- 	end
+-- 	return slot
+-- end
 
-wepslot.write = function(self, section, value)
-	self.map.uci:set("wireless", section, "key", value)
-end
+-- wepslot.write = function(self, section, value)
+-- 	self.map.uci:set("wireless", section, "key", value)
+-- end
 
-local slot
-for slot=1,4 do
-	wepkey = s:taboption("encryption", Value, "key" .. slot, translatef("Key #%d", slot))
-	wepkey:depends("encryption", "wep-open")
-	wepkey:depends("encryption", "wep-shared")
-	wepkey.datatype = "wepkey"
-	wepkey.rmempty = true
-	wepkey.password = true
+-- local slot
+-- for slot=1,4 do
+-- 	wepkey = s:taboption("encryption", Value, "key" .. slot, translatef("Key #%d", slot))
+-- 	wepkey:depends("encryption", "wep-open")
+-- 	wepkey:depends("encryption", "wep-shared")
+-- 	wepkey.datatype = "wepkey"
+-- 	wepkey.rmempty = true
+-- 	wepkey.password = true
 
-	function wepkey.write(self, section, value)
-		if value and (#value == 5 or #value == 13) then
-			value = "s:" .. value
-		end
-		return Value.write(self, section, value)
-	end
-end
+-- 	function wepkey.write(self, section, value)
+-- 		if value and (#value == 5 or #value == 13) then
+-- 			value = "s:" .. value
+-- 		end
+-- 		return Value.write(self, section, value)
+-- 	end
+-- end
 
 
 if hwtype == "atheros" or hwtype == "mac80211" or hwtype == "prism2" then
