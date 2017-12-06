@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 ARCH:=mipsel
 BOARD:=ramips
 BOARDNAME:=Ralink RT288x/RT3xxx
-SUBTARGETS:=mt7688
+SUBTARGETS:=mt7628 mt7688
 FEATURES:=squashfs gpio
 MAINTAINER:=John Crispin <blogic@openwrt.org>
 
