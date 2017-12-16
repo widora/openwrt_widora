@@ -57,6 +57,11 @@ Subtarget(MT7688 based board) --->
 
 Target Profile(Widora) --->
 
+## note
+Widora:16MB FLASH + 128MB RAM
+
+Widora32M:32MB FLASH + 128MB RAM
+
 # 5.make
 $ make -j4
 # 6.image
