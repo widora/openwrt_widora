@@ -1,5 +1,5 @@
 #### Hello everybody
-  * [Follow us on Twitter](https://twitter.com/mangogeek/)
+  * [Twitter:widora_io](https://twitter.com/widora_io/)
 #### how to check if connected to some AP? use ap_client command,check return is ok or no
 ``` sh
 $ ap_client
