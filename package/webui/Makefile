@@ -19,7 +19,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/webui
 	SECTION:=Ralink SDK Mango
 	CATEGORY:=Ralink SDK Mango
-	TITLE:=setwifi by web,use http://x.x.x.x/webui/
+	TITLE:=setwifi by web,use http://x.x.x.x/webui.html
 	DEPENDS :=
 endef
 
@@ -36,8 +36,8 @@ define Build/Compile
 endef
 
 define Package/webui/install
-	$(INSTALL_DIR) $(1)/www/webui/
-	$(CP) ./files/www/webui/* $(1)/www/webui/
+	$(INSTALL_DIR) $(1)/www/
+	$(CP) ./files/www/* $(1)/www/
 endef
 
 $(eval $(call BuildPackage,webui))

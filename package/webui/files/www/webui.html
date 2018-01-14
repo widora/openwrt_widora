@@ -28,7 +28,7 @@
       function setwifi() {
         $.ajax({
           type: "GET", 
-          url: "/cgi-bin/setwifi?ssid="+$('#ssid').val()+"&password="+$('#password').val(),
+          url: "cgi-bin/setwifi?ssid="+$('#ssid').val()+"&password="+$('#password').val(),
           dataType: "json",
           contentType: "application/json; charset=utf-8",
           success: function(json) {
@@ -48,7 +48,7 @@
       function diswifi() {
         $.ajax({
           type: "GET",
-          url: "/cgi-bin/diswifi",
+          url: "cgi-bin/diswifi",
           dataType: "json",
           contentType: "application/json; charset=utf-8",
           success: function(json) {
@@ -69,7 +69,7 @@
       function setpass() {
         $.ajax({
           type: "GET",
-          url: "/cgi-bin/setpass?passwd="+$('#passwd').val(),
+          url: "cgi-bin/setpass?passwd="+$('#passwd').val(),
           dataType: "json",
           contentType: "application/json; charset=utf-8",
           success: function(json) {
@@ -155,7 +155,7 @@
       $(window).on('load', function () {
         $.ajax({
           type: "GET", 
-          url: "/cgi-bin/aps",
+          url: "cgi-bin/aps",
           dataType: "json",
           contentType: "application/json; charset=utf-8",
           success: function(json) {
@@ -173,7 +173,7 @@
         });
         $.ajax({
           type: "GET", 
-          url: "/cgi-bin/checkwifi",
+          url: "cgi-bin/checkwifi",
           dataType: "json",
           contentType: "application/json; charset=utf-8",
           success: function(json) {
@@ -195,7 +195,7 @@
     $(window).on('load', function () {
       $.ajax({
         type: "GET",
-        url: "/cgi-bin/getssid",
+        url: "cgi-bin/getssid",
         dataType: "json",
         contentType: "application/json; charset=utf-8",
         success: function(json) {
