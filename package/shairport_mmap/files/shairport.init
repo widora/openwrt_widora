@@ -99,6 +99,8 @@ service_triggers() {
 } 
 
 start_service() {
+	# restart mDNS service
+	/etc/init.d/avahi-daemon restart
 	config_load shairport
 	config_foreach start_instance shairport
 }
