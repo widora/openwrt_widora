@@ -1,0 +1,9 @@
+LoadTool('gcc-generic', env, gcc_cross_prefix='mipsel-openwrt-linux')
+
+### Neptune System Files
+env['NPT_SYSTEM_SOURCES']={'System/StdC':'*.cpp', 'System/Bsd':'*.cpp', 'System/Posix':'*.cpp'}
+env['NPT_EXTRA_LIBS']=['pthread']
+
+env['NPT_EXTRA_INCS_PATH']=['./../../../../../../../../staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/include/gstreamer-1.0', './../../../../../../../../staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/include/glib-2.0']
+env['NPT_EXTRA_LIBS_PATH']=['./../../../../../../../../staging_dir/toolchain-mipsel_24kec+dsp_gcc-4.8-linaro_uClibc-0.9.33.2/lib', './../../../../../../../../staging_dir/target-mipsel_24kec+dsp_uClibc-0.9.33.2/usr/lib']
+env['NPT_EXTRA_ME_LIBS']=['gstreamer-1.0', 'gobject-2.0', 'glib-2.0', 'ffi', 'gmodule-2.0']
