@@ -1,3 +1,6 @@
+#### 敬告某些国内厂家
+  * Widora发布的MT7688 WI-FI驱动因版权限制只能运行在NEO、BIT模组、集成BIT模组的产品上，在其他7688上运行属于侵权行为，侵权必究。
+
 #### Hello everybody
   * [Twitter:widora_io](https://twitter.com/widora_io/)
   * TELEGRAM: https://t.me/widora
