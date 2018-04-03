@@ -43,7 +43,7 @@ I2C_MT7621_MODULES:= \
 define KernelPackage/i2c-mt7621
   $(call i2c_defaults,$(I2C_MT7621_MODULES),59)
   TITLE:=MT7621 I2C Controller
-  DEPENDS:=@TARGET_ramips @TARGET_ramips_mt7621 kmod-i2c-core
+  DEPENDS:=@TARGET_ramips @(TARGET_ramips_mt7628||TARGET_ramips_mt7688||TARGET_ramips_mt7621) kmod-i2c-core
 endef
 
 define KernelPackage/i2c-mt7621/description
@@ -77,7 +77,7 @@ $(eval $(call KernelPackage,sound-mt7620))
 
 define KernelPackage/sound-mtk
   TITLE:=Mediatek I2S Alsa Driver
-  DEPENDS:= +kmod-sound-soc-core +kmod-regmap +kmod-i2c-ralink @(TARGET_ramips_mt7628||TARGET_ramips_mt7688||TARGET_ramips_mt7620)
+  DEPENDS:= +kmod-sound-soc-core +kmod-regmap +kmod-i2c-mt7621 @(TARGET_ramips_mt7628||TARGET_ramips_mt7688||TARGET_ramips_mt7620)
   KCONFIG:= \
 	CONFIG_SND_MT76XX_SOC \
 	CONFIG_SND_MT76XX_I2S \

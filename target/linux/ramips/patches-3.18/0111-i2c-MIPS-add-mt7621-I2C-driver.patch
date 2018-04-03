@@ -5,7 +5,7 @@
  	select OF_I2C
  
 +config I2C_MT7621
-+	tristate "MT7621 I2C Controller"
++	tristate "MT7621/MT7628 I2C Controller"
 +	select OF_I2C
 +
  config HAVE_S3C2410_I2C
@@ -23,11 +23,13 @@
  obj-$(CONFIG_I2C_RK3X)		+= i2c-rk3x.o
 --- /dev/null
 +++ b/drivers/i2c/busses/i2c-mt7621.c
-@@ -0,0 +1,303 @@
+@@ -0,0 +1,397 @@
 +/*
 + * drivers/i2c/busses/i2c-mt7621.c
 + *
 + * Copyright (C) 2013 Steven Liu <steven_liu@mediatek.com>
++ * Copyright (C) 2016 Michael Lee <igvtee@gmail.com>
++ * Copyright (C) 2018 Jan Breuer <jan.breuer@jaybee.cz>
 + *
 + * Improve driver for i2cdetect from i2c-tools to detect i2c devices on the bus.
 + * (C) 2014 Sittisak <sittisaks@hotmail.com>
@@ -52,276 +54,368 @@
 +#include <linux/init.h>
 +#include <linux/errno.h>
 +#include <linux/platform_device.h>
++#include <linux/of_platform.h>
 +#include <linux/i2c.h>
 +#include <linux/io.h>
 +#include <linux/err.h>
 +
-+#include <asm/mach-ralink/ralink_regs.h>
++#define REG_SM0CFG2_REG		0x28
++#define REG_SM0CTL0_REG		0x40
++#define REG_SM0CTL1_REG		0x44
++#define REG_SM0D0_REG		0x50
++#define REG_SM0D1_REG		0x54
++#define REG_PINTEN_REG		0x5C
++#define REG_PINTST_REG		0x60
++#define REG_PINTCL_REG		0x64
 +
-+#define REG_CONFIG_REG                       0x00
-+#define REG_CLKDIV_REG                       0x04
-+#define REG_DEVADDR_REG                      0x08
-+#define REG_ADDR_REG                         0x0C
-+#define REG_DATAOUT_REG                      0x10
-+#define REG_DATAIN_REG                       0x14
-+#define REG_STATUS_REG                       0x18
-+#define REG_STARTXFR_REG                     0x1C
-+#define REG_BYTECNT_REG                      0x20
-+#define REG_SM0_IS_AUTOMODE                  0x28
-+#define REG_SM0CTL0                          0x40
++/* REG_SM0CFG2_REG */
++#define SM0CFG2_IS_AUTOMODE	BIT(0)
 +
++/* REG_SM0CTL0_REG */
++#define SM0CTL0_ODRAIN		BIT(31)
++#define SM0CTL0_CLK_DIV_MASK	(0x7FF << 16)
++#define SM0CTL0_CLK_DIV_MAX	0x7ff
++#define SM0CTL0_CS_STATUS       BIT(4)
++#define SM0CTL0_SCL_STATE       BIT(3)
++#define SM0CTL0_SDA_STATE       BIT(2)
++#define SM0CTL0_EN              BIT(1)
++#define SM0CTL0_SCL_STRETCH     BIT(0)
 +
-+#define I2C_STARTERR                         0x10
-+#define I2C_ACKERR                           0x08
-+#define I2C_DATARDY                          0x04
-+#define I2C_SDOEMPTY                         0x02
-+#define I2C_BUSY                             0x01
++/* REG_SM0CTL1_REG */
++#define SM0CTL1_ACK_MASK	(0xFF << 16)
++#define SM0CTL1_PGLEN_MASK	(0x7 << 8)
++#define SM0CTL1_PGLEN(x)	(((x - 1) << 8) & SM0CTL1_PGLEN_MASK)
++#define SM0CTL1_READ		(5 << 4)
++#define SM0CTL1_READ_LAST	(4 << 4)
++#define SM0CTL1_STOP		(3 << 4)
++#define SM0CTL1_WRITE		(2 << 4)
++#define SM0CTL1_START		(1 << 4)
++#define SM0CTL1_MODE_MASK	(0x7 << 4)
++#define SM0CTL1_TRI		BIT(0)
 +
-+/* I2C_CFG register bit field */
-+#define I2C_CFG_ADDRLEN_8                    (7<<5)	/* 8 bits */
-+#define I2C_CFG_DEVADLEN_7                   (6<<2)
-+#define I2C_CFG_ADDRDIS                      BIT(1)
-+#define I2C_CFG_DEVADDIS                     BIT(0)
++/* timeout waiting for I2C devices to respond (clock streching) */
++#define TIMEOUT_MS              1000
++#define DELAY_INTERVAL_US       100
 +
-+#define I2C_CFG_DEFAULT	(I2C_CFG_ADDRLEN_8 | \
-+		I2C_CFG_DEVADLEN_7 | \
-+		I2C_CFG_ADDRDIS)
++struct mtk_i2c {
++	void __iomem *base;
++	struct device *dev;
++	struct i2c_adapter adap;
++	u32 cur_clk;
++	u32 clk_div;
++	u32 flags;
++};
 +
-+#define I2C_RETRY                            0x1000
-+
-+#define CLKDIV_VALUE                         333
-+#define i2c_busy_loop                        (CLKDIV_VALUE*30)
-+
-+#define READ_CMD                             0x01
-+#define WRITE_CMD                            0x00
-+#define READ_BLOCK                           16
-+
-+#define SM0_ODRAIN                           BIT(31)
-+#define SM0_VSYNC_MODE                       BIT(28)
-+#define SM0_CLK_DIV                          (CLKDIV_VALUE << 16)
-+#define SM0_WAIT_LEVEL                       BIT(6)
-+#define SM0_EN                               BIT(1)
-+
-+#define SM0_CFG_DEFUALT (SM0_ODRAIN | SM0_VSYNC_MODE | \
-+                        SM0_CLK_DIV | SM0_WAIT_LEVEL | \
-+                        SM0_EN) 
-+/***********************************************************/
-+
-+static void __iomem *membase;
-+static struct i2c_adapter *adapter;
-+
-+static void rt_i2c_w32(u32 val, unsigned reg)
++static void mtk_i2c_w32(struct mtk_i2c *i2c, u32 val, unsigned reg)
 +{
-+	iowrite32(val, membase + reg);
++	iowrite32(val, i2c->base + reg);
 +}
 +
-+static u32 rt_i2c_r32(unsigned reg)
++static u32 mtk_i2c_r32(struct mtk_i2c *i2c, unsigned reg)
 +{
-+	return ioread32(membase + reg);
++	return ioread32(i2c->base + reg);
 +}
 +
-+static void mt7621_i2c_reset(struct i2c_adapter *a)
++static int poll_down_timeout(void __iomem *addr, u32 mask)
 +{
-+	device_reset(a->dev.parent);
-+}
-+static void mt7621_i2c_enable(struct i2c_msg *msg)
-+{
-+	rt_i2c_w32(msg->addr,REG_DEVADDR_REG);
-+	rt_i2c_w32(0,REG_ADDR_REG);
-+}
++	unsigned long timeout = jiffies + msecs_to_jiffies(TIMEOUT_MS);
++	int current_delay = 1;
 +
-+static void i2c_master_init(struct i2c_adapter *a)
-+{
-+	mt7621_i2c_reset(a); 
-+	rt_i2c_w32(I2C_CFG_DEFAULT,REG_CONFIG_REG);    
-+	rt_i2c_w32(SM0_CFG_DEFUALT,REG_SM0CTL0);
-+	rt_i2c_w32(1,REG_SM0_IS_AUTOMODE);//auto mode
-+}
++	do {
++		if (!(readl_relaxed(addr) & mask))
++			return 0;
 +
++		if (current_delay > 0 && current_delay < 10) {
++			udelay(current_delay);
++		} else if (current_delay >= 10) {
++			usleep_range(current_delay, current_delay + 50);
++		}
++		current_delay *= current_delay;
++		if (current_delay > DELAY_INTERVAL_US) {
++			current_delay = DELAY_INTERVAL_US;
++		}
++	} while (time_before(jiffies, timeout));
 +
-+static inline int rt_i2c_wait_rx_done(void)
-+{
-+	int i=0;
-+	while((!(rt_i2c_r32(REG_STATUS_REG) & I2C_DATARDY)) && (i<i2c_busy_loop))
-+		i++;
-+	if(i>=i2c_busy_loop){
-+		pr_err("err,wait for idle timeout");
-+		return -ETIMEDOUT;
-+	}
-+	return 0;
++	return (readl_relaxed(addr) & mask) ? -EAGAIN : 0;
 +}
 +
-+static inline int rt_i2c_wait_idle(void)
++static int mtk_i2c_wait_idle(struct mtk_i2c *i2c)
 +{
-+	int i=0;
-+	while((rt_i2c_r32(REG_STATUS_REG) & I2C_BUSY) && (i<i2c_busy_loop))
-+		i++;
-+	if(i>=i2c_busy_loop){
-+		pr_err("err,wait for idle timeout");
-+		return -ETIMEDOUT;
-+	}
-+	return 0;
++	int ret;
++
++	ret = poll_down_timeout(i2c->base + REG_SM0CTL1_REG, SM0CTL1_TRI);
++	if (ret < 0)
++		dev_dbg(i2c->dev, "idle err(%d)\n", ret);
++
++	return ret;
 +}
 +
-+static inline int rt_i2c_wait_tx_done(void)
++static void mtk_i2c_reset(struct mtk_i2c *i2c)
 +{
-+	int i=0;
-+	while((!(rt_i2c_r32(REG_STATUS_REG) & I2C_SDOEMPTY)) && (i<i2c_busy_loop))
-+		i++;
-+	if(i>=i2c_busy_loop){
-+		pr_err("err,wait for idle timeout");
-+		return -ETIMEDOUT;
-+	}
-+	return 0;
++	device_reset(i2c->adap.dev.parent);
++	barrier();
++	mtk_i2c_w32(i2c,
++		   SM0CTL0_ODRAIN
++		   | ((i2c->clk_div << 16) & SM0CTL0_CLK_DIV_MASK)
++		   | SM0CTL0_EN
++		   | SM0CTL0_SCL_STRETCH, REG_SM0CTL0_REG);
++	mtk_i2c_w32(i2c, 0, REG_SM0CFG2_REG);
 +}
 +
-+static int rt_i2c_handle_msg(struct i2c_adapter *a, struct i2c_msg* msg)
++static void mtk_i2c_dump_reg(struct mtk_i2c *i2c)
 +{
-+	int i = 0, j = 0, pos = 0;
-+	int nblock = msg->len / READ_BLOCK;
-+	int rem = msg->len % READ_BLOCK;
++	dev_dbg(i2c->dev, "SM0CFG2 %08x, SM0CTL0 %08x, SM0CTL1 %08x, " \
++			"SM0D0 %08x, SM0D1 %08x\n",
++			mtk_i2c_r32(i2c, REG_SM0CFG2_REG),
++			mtk_i2c_r32(i2c, REG_SM0CTL0_REG),
++			mtk_i2c_r32(i2c, REG_SM0CTL1_REG),
++			mtk_i2c_r32(i2c, REG_SM0D0_REG),
++			mtk_i2c_r32(i2c, REG_SM0D1_REG));
++}
 +
-+	if (msg->flags & I2C_M_TEN) {
-+		printk("10 bits addr not supported\n");
-+		return -EINVAL;
-+	}
++static int mtk_i2c_check_ack(struct mtk_i2c *i2c, u32 expected)
++{
++	u32 ack = readl_relaxed(i2c->base + REG_SM0CTL1_REG);
++	u32 ack_expected = (expected << 16) & SM0CTL1_ACK_MASK;
++	return ((ack & ack_expected) == ack_expected) ? 0 : -ENXIO;
++}
 +
-+	if (msg->flags & I2C_M_RD) {
-+		for (i = 0; i < nblock; i++) {
-+			if (rt_i2c_wait_idle())
++static int mtk_i2c_master_start(struct mtk_i2c *i2c)
++{
++	mtk_i2c_w32(i2c, SM0CTL1_START | SM0CTL1_TRI, REG_SM0CTL1_REG);
++	return mtk_i2c_wait_idle(i2c);
++}
++
++static int mtk_i2c_master_stop(struct mtk_i2c *i2c)
++{
++	mtk_i2c_w32(i2c, SM0CTL1_STOP | SM0CTL1_TRI, REG_SM0CTL1_REG);
++	return mtk_i2c_wait_idle(i2c);
++}
++
++static int mtk_i2c_master_cmd(struct mtk_i2c *i2c, u32 cmd, int page_len)
++{
++	mtk_i2c_w32(i2c, cmd | SM0CTL1_TRI | SM0CTL1_PGLEN(page_len), REG_SM0CTL1_REG);
++	return mtk_i2c_wait_idle(i2c);
++}
++static int mtk_i2c_master_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
++		int num)
++{
++	struct mtk_i2c *i2c;
++	struct i2c_msg *pmsg;
++	u16 addr;
++	int i, j, ret, len, page_len;
++	u32 cmd;
++	u32 data[2];
++
++	i2c = i2c_get_adapdata(adap);
++
++	for (i = 0; i < num; i++) {
++		pmsg = &msgs[i];
++
++		dev_dbg(i2c->dev, "addr: 0x%x, len: %d, flags: 0x%x\n",
++				pmsg->addr, pmsg->len, pmsg->flags);
++
++		/* wait hardware idle */
++		if ((ret = mtk_i2c_wait_idle(i2c)))
++			goto err_timeout;
++
++		/* start sequence */
++		if ((ret = mtk_i2c_master_start(i2c)))
++			goto err_timeout;
++
++		/* write address */
++		if (pmsg->flags & I2C_M_TEN) {
++			/* 10 bits address */
++			addr = 0xf0 | ((pmsg->addr >> 7) & 0x06);
++			addr |= (pmsg->addr & 0xff) << 8;
++			if (pmsg->flags & I2C_M_RD)
++				addr |= 1;
++			mtk_i2c_w32(i2c, addr, REG_SM0D0_REG);
++			if ((ret = mtk_i2c_master_cmd(i2c, SM0CTL1_WRITE, 2)))
 +				goto err_timeout;
-+			rt_i2c_w32(READ_BLOCK - 1, REG_BYTECNT_REG);
-+			rt_i2c_w32(READ_CMD, REG_STARTXFR_REG);
-+			for (j = 0; j < READ_BLOCK; j++) {
-+				if (rt_i2c_wait_rx_done())
-+					goto err_timeout;
-+				msg->buf[pos++] = rt_i2c_r32(REG_DATAIN_REG);
++		} else {
++			/* 7 bits address */
++			addr = pmsg->addr << 1;
++			if (pmsg->flags & I2C_M_RD)
++				addr |= 1;
++			mtk_i2c_w32(i2c, addr, REG_SM0D0_REG);
++			if ((ret = mtk_i2c_master_cmd(i2c, SM0CTL1_WRITE, 1)))
++				goto err_timeout;
++		}
++
++		/* check address ACK */
++		if (!(pmsg->flags & I2C_M_IGNORE_NAK)) {
++			if ((ret = mtk_i2c_check_ack(i2c, BIT(0))))
++				goto err_ack;
++		}
++
++		/* transfer data */
++		j = 0;
++		for (len = pmsg->len; len > 0; len -= 8) {
++			page_len = (len >= 8) ? 8 : len;
++
++			if (pmsg->flags & I2C_M_RD) {
++				cmd = (len > 8) ? SM0CTL1_READ : SM0CTL1_READ_LAST;
++			} else {
++				memcpy(data, &pmsg->buf[j], page_len);
++				mtk_i2c_w32(i2c, data[0], REG_SM0D0_REG);
++				mtk_i2c_w32(i2c, data[1], REG_SM0D1_REG);
++				cmd = SM0CTL1_WRITE;
 +			}
-+		}
 +
-+		if (rt_i2c_wait_idle())
-+		    goto err_timeout;
-+		rt_i2c_w32(rem - 1, REG_BYTECNT_REG);
-+		rt_i2c_w32(READ_CMD, REG_STARTXFR_REG);
-+		
-+		for (i = 0; i < rem; i++) {
-+			if (rt_i2c_wait_rx_done())
++			if ((ret = mtk_i2c_master_cmd(i2c, cmd, page_len)))
 +				goto err_timeout;
-+			msg->buf[pos++] = rt_i2c_r32(REG_DATAIN_REG);
-+		}
-+	} else {
-+		if (rt_i2c_wait_idle())
-+	        	goto err_timeout;
-+		rt_i2c_w32(msg->len - 1, REG_BYTECNT_REG);
-+		for (i = 0; i < msg->len; i++) {
-+			rt_i2c_w32(msg->buf[i], REG_DATAOUT_REG);
-+			if(i == 0)
-+				rt_i2c_w32(WRITE_CMD, REG_STARTXFR_REG);
 +
-+			if (rt_i2c_wait_tx_done())
-+				goto err_timeout;
++			if (pmsg->flags & I2C_M_RD) {
++				data[0] = mtk_i2c_r32(i2c, REG_SM0D0_REG);
++				data[1] = mtk_i2c_r32(i2c, REG_SM0D1_REG);
++				memcpy(&pmsg->buf[j], data, page_len);
++			} else {
++				if (!(pmsg->flags & I2C_M_IGNORE_NAK)) {
++					if ((ret = mtk_i2c_check_ack(i2c, (1 << page_len) - 1)))
++						goto err_ack;
++				}
++			}
++			j += 8;
 +		}
 +	}
 +
-+	return 0;
++	if ((ret = mtk_i2c_master_stop(i2c)))
++		goto err_timeout;
++
++	/* the return value is number of executed messages */
++	ret = i;
++
++	return ret;
++
++err_ack:
++	if ((ret = mtk_i2c_master_stop(i2c)))
++		goto err_timeout;
++	return -ENXIO;
++
 +err_timeout:
-+	return -ETIMEDOUT;
++	mtk_i2c_dump_reg(i2c);
++	mtk_i2c_reset(i2c);
++	return ret;
 +}
 +
-+static int rt_i2c_master_xfer(struct i2c_adapter *a, struct i2c_msg *m, int n)
-+{
-+	int i = 0;
-+	int ret = 0;
-+	i2c_master_init(a);
-+	mt7621_i2c_enable(m);
-+
-+	for (i = 0; i != n && ret==0; i++) {
-+		ret = rt_i2c_handle_msg(a, &m[i]);
-+		if (ret) 
-+			return ret;	
-+	}
-+	return i;
-+}
-+
-+static u32 rt_i2c_func(struct i2c_adapter *a)
++static u32 mtk_i2c_func(struct i2c_adapter *a)
 +{
 +	return I2C_FUNC_I2C | I2C_FUNC_SMBUS_EMUL;
 +}
 +
-+static const struct i2c_algorithm rt_i2c_algo = {
-+	.master_xfer	= rt_i2c_master_xfer,
-+	.functionality	= rt_i2c_func,
++static const struct i2c_algorithm mtk_i2c_algo = {
++	.master_xfer	= mtk_i2c_master_xfer,
++	.functionality	= mtk_i2c_func,
 +};
 +
-+static int rt_i2c_probe(struct platform_device *pdev)
-+{
-+	struct resource *res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-+	int ret;
-+
-+	adapter = devm_kzalloc(&pdev->dev,sizeof(struct i2c_adapter), GFP_KERNEL);
-+	if (!adapter) {
-+		dev_err(&pdev->dev, "failed to allocate i2c_adapter\n");
-+		return -ENOMEM;
-+	}
-+	membase = devm_ioremap_resource(&pdev->dev, res);
-+	if (IS_ERR(membase))
-+		return PTR_ERR(membase);
-+
-+	strlcpy(adapter->name, dev_name(&pdev->dev), sizeof(adapter->name));
-+
-+	adapter->owner = THIS_MODULE;
-+	adapter->nr = pdev->id;
-+	adapter->timeout = HZ;
-+	adapter->algo = &rt_i2c_algo;
-+	adapter->class = I2C_CLASS_HWMON | I2C_CLASS_SPD;
-+	adapter->dev.parent = &pdev->dev;
-+	adapter->dev.of_node = pdev->dev.of_node;
-+
-+	platform_set_drvdata(pdev, adapter);
-+	
-+	ret = i2c_add_numbered_adapter(adapter);
-+	if (ret)
-+		return ret;
-+
-+	dev_info(&pdev->dev,"loaded");
-+
-+	return 0;
-+}
-+
-+static int rt_i2c_remove(struct platform_device *pdev)
-+{
-+	platform_set_drvdata(pdev, NULL);
-+	return 0;
-+}
-+
-+static const struct of_device_id i2c_rt_dt_ids[] = {
-+	{ .compatible = "ralink,i2c-mt7621", },
++static const struct of_device_id i2c_mtk_dt_ids[] = {
++	{ .compatible = "mediatek,mt7621-i2c" },
++	{ .compatible = "mediatek,mt7628-i2c" },
 +	{ /* sentinel */ }
 +};
 +
-+MODULE_DEVICE_TABLE(of, i2c_rt_dt_ids);
++MODULE_DEVICE_TABLE(of, i2c_mtk_dt_ids);
 +
-+static struct platform_driver rt_i2c_driver = {
-+	.probe		= rt_i2c_probe,
-+	.remove		= rt_i2c_remove,
++static void mtk_i2c_init(struct mtk_i2c *i2c)
++{
++	i2c->clk_div = 40000000 / i2c->cur_clk - 1;
++	if (i2c->clk_div < 99)
++		i2c->clk_div = 99;
++	if (i2c->clk_div > SM0CTL0_CLK_DIV_MAX)
++		i2c->clk_div = SM0CTL0_CLK_DIV_MAX;
++
++	mtk_i2c_reset(i2c);
++}
++
++static int mtk_i2c_probe(struct platform_device *pdev)
++{
++	struct resource *res;
++	struct mtk_i2c *i2c;
++	struct i2c_adapter *adap;
++	const struct of_device_id *match;
++	int ret;
++
++	match = of_match_device(i2c_mtk_dt_ids, &pdev->dev);
++
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++	if (!res) {
++		dev_err(&pdev->dev, "no memory resource found\n");
++		return -ENODEV;
++	}
++
++	i2c = devm_kzalloc(&pdev->dev, sizeof(struct mtk_i2c), GFP_KERNEL);
++	if (!i2c) {
++		dev_err(&pdev->dev, "failed to allocate i2c_adapter\n");
++		return -ENOMEM;
++	}
++
++	i2c->base = devm_ioremap_resource(&pdev->dev, res);
++	if (IS_ERR(i2c->base))
++		return PTR_ERR(i2c->base);
++
++	i2c->dev = &pdev->dev;
++
++	if (of_property_read_u32(pdev->dev.of_node,
++				"clock-frequency", &i2c->cur_clk))
++		i2c->cur_clk = 100000;
++
++	adap = &i2c->adap;
++	adap->owner = THIS_MODULE;
++	adap->class = I2C_CLASS_HWMON | I2C_CLASS_SPD;
++	adap->algo = &mtk_i2c_algo;
++	adap->retries = 3;
++	adap->dev.parent = &pdev->dev;
++	i2c_set_adapdata(adap, i2c);
++	adap->dev.of_node = pdev->dev.of_node;
++	strlcpy(adap->name, dev_name(&pdev->dev), sizeof(adap->name));
++
++	platform_set_drvdata(pdev, i2c);
++
++	mtk_i2c_init(i2c);
++
++	ret = i2c_add_adapter(adap);
++	if (ret < 0) {
++		dev_err(&pdev->dev, "failed to add adapter\n");
++		return ret;
++	}
++
++	dev_info(&pdev->dev, "clock %u kHz\n",
++			i2c->cur_clk/1000);
++
++	return ret;
++}
++
++static int mtk_i2c_remove(struct platform_device *pdev)
++{
++	struct mtk_i2c *i2c = platform_get_drvdata(pdev);
++
++	i2c_del_adapter(&i2c->adap);
++
++	return 0;
++}
++
++static struct platform_driver mtk_i2c_driver = {
++	.probe		= mtk_i2c_probe,
++	.remove		= mtk_i2c_remove,
 +	.driver		= {
 +		.owner	= THIS_MODULE,
 +		.name	= "i2c-mt7621",
-+		.of_match_table = i2c_rt_dt_ids,
++		.of_match_table = i2c_mtk_dt_ids,
 +	},
 +};
 +
-+static int __init i2c_rt_init (void)
++static int __init i2c_mtk_init (void)
 +{
-+	return platform_driver_register(&rt_i2c_driver);
++	return platform_driver_register(&mtk_i2c_driver);
 +}
++subsys_initcall(i2c_mtk_init);
 +
-+static void __exit i2c_rt_exit (void)
++static void __exit i2c_mtk_exit (void)
 +{
-+	platform_driver_unregister(&rt_i2c_driver);
++	platform_driver_unregister(&mtk_i2c_driver);
 +}
-+module_init (i2c_rt_init);
-+module_exit (i2c_rt_exit);
++module_exit(i2c_mtk_exit);
 +
 +MODULE_AUTHOR("Steven Liu <steven_liu@mediatek.com>");
 +MODULE_DESCRIPTION("MT7621 I2c host driver");
