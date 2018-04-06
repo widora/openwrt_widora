@@ -7,13 +7,13 @@
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin
 
 pi_ifname=
-pi_ip=192.168.1.1
-pi_broadcast=192.168.1.255
+pi_ip=192.168.8.1
+pi_broadcast=192.168.8.255
 pi_netmask=255.255.255.0
 
 fs_failsafe_ifname=
-fs_failsafe_ip=192.168.1.1
-fs_failsafe_broadcast=192.168.1.255
+fs_failsafe_ip=192.168.8.1
+fs_failsafe_broadcast=192.168.8.255
 fs_failsafe_netmask=255.255.255.0
 
 fs_failsafe_wait_timeout=2

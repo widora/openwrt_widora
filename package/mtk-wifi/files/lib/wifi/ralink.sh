@@ -36,7 +36,7 @@ config wifi-iface sta
 	option device   radio0
 	option disabled 1
 	option mode	sta
-	option network  wan
+	option network  wwan
 	option ifname   $sta
 	option ssid	UplinkAp
 	option key	SecretKey

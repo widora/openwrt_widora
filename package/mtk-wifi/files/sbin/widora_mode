@@ -1,7 +1,5 @@
 #!/bin/sh
 if [ -n "$1" ];then
-wifi down
-sleep 1
 case $1 in
 repeater)	#repeater mode
 	if [ -n "$2" ];then
@@ -18,7 +16,6 @@ repeater)	#repeater mode
 	uci set dhcp.lan.ignore=1
 	uci set network.lan.proto='dhcp'
 	uci set network.lan.ifname='eth0'
-	uci delete network.wan
 	uci commit
 	/etc/init.d/network restart
 	;;
@@ -32,11 +29,11 @@ client)	#client mode
 	fi
 	fi
 	uci set wireless.sta.disabled=0
-	uci set wireless.sta.network=wan
-	uci set wireless.ap.hidden=1
-	uci set network.wan=interface
-	uci set network.wan.ifname='apcli0'
-	uci set network.wan.proto='dhcp'
+	uci set wireless.sta.network=wwan
+	uci set wireless.ap.hidden=0
+	uci set network.wwan=interface
+	uci set network.wwan.ifname='apcli0'
+	uci set network.wwan.proto='dhcp'
 	uci set dhcp.lan.ignore=0
 	uci set network.lan.proto=static
 	uci set network.lan.ifname='eth0'
@@ -44,12 +41,13 @@ client)	#client mode
 	/etc/init.d/network restart
 	;;
 router)	#router mode	
-	uci set wireless.sta.network=wan
+	uci set wireless.sta.network=wwan
 	uci set wireless.sta.disabled=1
 	uci set wireless.ap.hidden=0
 	uci set dhcp.lan.ignore=0
 	uci set network.lan.proto=static
 	uci delete network.lan.ifname
+	uci delete network.wwan
 	uci set network.wan=interface
 	uci set network.wan.ifname='eth0'
 	uci set network.wan.proto='dhcp'	
@@ -63,6 +61,8 @@ pppoe)	#pppoe mode
 	uci set dhcp.lan.ignore=0
 	uci set network.lan.proto=static
 	uci delete network.lan.ifname
+	uci delete network.wwan
+	uci set network.wan=interface
 	uci set network.wan=interface
 	uci set network.wan.ifname='eth0'
 	uci set network.wan.proto='pppoe'

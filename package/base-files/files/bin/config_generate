@@ -53,7 +53,7 @@ EOF
 	lan) uci -q batch <<EOF
 set network.$1.type='bridge'
 set network.$1.proto='static'
-set network.$1.ipaddr='192.168.1.1'
+set network.$1.ipaddr='192.168.8.1'
 set network.$1.netmask='255.255.255.0'
 set network.$1.ip6assign='60'
 EOF
