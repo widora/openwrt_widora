@@ -1,0 +1,25 @@
+From f795fc77a2cf90ce77707faddc93a51f736a4553 Mon Sep 17 00:00:00 2001
+From: Dmitriy Falko <d.falko@partner.samsung.com>
+Date: Fri, 17 Jun 2016 11:31:02 +0300
+Subject: [PATCH] Alias _obstack_free to fix binutils build
+
+Signed-off-by: Dmitriy Falko <d.falko@partner.samsung.com>
+---
+ libc/misc/gnu/obstack.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+--- a/libc/misc/gnu/obstack.c	2012-05-15 09:20:09.000000000 +0200
++++ b/libc/misc/gnu/obstack.c	2016-07-26 16:15:38.824023196 +0200
+@@ -393,11 +393,9 @@
+     abort ();
+ }
+
+-# ifdef _LIBC
+ /* Older versions of libc used a function _obstack_free intended to be
+    called by non-GCC compilers.  */
++strong_alias (obstack_free, _obstack_free)
+-strong_alias (obstack_free, _obstack_free)
+-# endif
+
+ int
+ _obstack_memory_used (struct obstack *h)
