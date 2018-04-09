@@ -1,5 +1,7 @@
 #!/bin/sh
 if [ -n "$1" ];then
+wifi down
+sleep 1
 case $1 in
 repeater)	#repeater mode
 	if [ -n "$2" ];then
