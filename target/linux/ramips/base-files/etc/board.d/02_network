@@ -47,8 +47,6 @@ ramips_setup_interfaces()
 	3g300m | \
 	linkits7688 | \
 	linkits7688d | \
-	widora | \
-	widora32m | \
 	microwrt | \
 	w150m | \
 	zte-q7 | \
@@ -181,6 +179,14 @@ ramips_setup_interfaces()
 	wt3020 | \
 	ur-326n4g | \
 	zbt-wa05)
+		ucidef_set_interfaces_lan_wan "eth0.1" "eth0.2"
+		ucidef_add_switch "switch0" "1" "1"
+		ucidef_add_switch_vlan "switch0" "1" "1 2 3 4 6t"
+		ucidef_add_switch_vlan "switch0" "2" "0 6t"
+		;;
+
+	widora | \
+	widora32m)
 		ucidef_set_interfaces_lan_wan "eth0.1" "eth0.2"
 		ucidef_add_switch "switch0" "1" "1"
 		ucidef_add_switch_vlan "switch0" "1" "1 2 3 4 6t"

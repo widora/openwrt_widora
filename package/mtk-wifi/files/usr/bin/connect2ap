@@ -1,0 +1,4 @@
+#!/bin/sh
+
+wifimode apsta $1 $2
+

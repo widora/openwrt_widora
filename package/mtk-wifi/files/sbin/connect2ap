@@ -1,4 +1,0 @@
-#!/bin/sh
-
-widora_mode client $1 $2
-

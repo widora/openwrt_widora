@@ -1,0 +1,55 @@
+#!/bin/sh
+
+case $1 in
+w)
+        echo "mode W"
+        uci set network.lan.ifname=eth0.1
+        uci set network.@switch[0].enable_vlan=1
+        uci set network.wan.ifname=eth0.2
+        uci set network.wan6.ifname=eth0.2
+        uci commit
+        reg w 10000064 0x550
+        reg w 1000003c 0xfe01ff
+        fw_setenv ethmode w
+        /etc/init.d/network restart      
+        ;;
+wllll)
+        echo "mode WLLLL"
+        uci set network.lan.ifname=eth0.1
+        uci set network.@switch[0].enable_vlan=1
+        uci set network.wan.ifname=eth0.2
+        uci set network.wan6.ifname=eth0.2
+        uci commit
+        reg w 10000064 0x0
+        reg w 1000003c 0xe001ff
+        fw_setenv ethmode wllll
+        /etc/init.d/network restart      
+        ;;
+l)
+        echo "mode L"
+        uci set network.lan.ifname=eth0
+        uci set network.@switch[0].enable_vlan=0
+        uci set network.wan.ifname=
+        uci set network.wan6.ifname=
+        uci commit
+        reg w 10000064 0x550
+        reg w 1000003c 0xfe01ff
+        fw_setenv ethmode l
+        /etc/init.d/network restart      
+        ;;
+lllll)
+        echo "mode LLLLL"
+        uci set network.lan.ifname=eth0
+        uci set network.@switch[0].enable_vlan=0
+        uci set network.wan.ifname=
+        uci set network.wan6.ifname=
+        uci commit
+        reg w 10000064 0x0
+        reg w 1000003c 0xe001ff
+        fw_setenv ethmode lllll
+        /etc/init.d/network restart      
+        ;;
+*)
+	fw_printenv ethmode | cut -d "=" -f2
+	;;
+esac

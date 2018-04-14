@@ -1,0 +1,16 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006 OpenWrt.org
+START=30
+
+start() {
+        ETHMODE=`fw_printenv ethmode | cut -d "=" -f2`
+        if [ -z $ETHMODE ] ;
+        then
+        echo "use default 1Port LAN" > /dev/console
+        ethmode l
+        else
+        echo $ETHMODE > /dev/console
+        ethmode $ETHMODE
+        fi
+}
+

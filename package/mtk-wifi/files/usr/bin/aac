@@ -6,4 +6,4 @@ ussid=`echo $line | awk '{print $4}'`
 upass=`echo $line | awk '{print $8}'`           
 echo $ussid $upass              
 rm /tmp/tmp_aac
-widora_mode client $ussid $upass
+wifimode apsta $ussid $upass
