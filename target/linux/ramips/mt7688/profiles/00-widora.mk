@@ -9,7 +9,7 @@ define Profile/Widora
 	NAME:=Widora
 	PACKAGES:=\
 		kmod-usb-core kmod-usb2 kmod-usb-ohci \
-		uboot-envtools kmod-ledtrig-netdev \
+		kmod-ledtrig-netdev \
   		mountd \
         	mjpg-streamer \
 		uhttpd rpcd rpcd-mod-iwinfo \

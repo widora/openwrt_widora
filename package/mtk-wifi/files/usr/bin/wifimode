@@ -44,5 +44,7 @@ ap)	#ap mode
 	uci commit
 	/etc/init.d/network restart
 	;;
+*)
+        echo "wifimode ap/sta/apsta"
 esac
 fi

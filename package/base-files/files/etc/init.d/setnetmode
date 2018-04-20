@@ -3,12 +3,14 @@
 START=30
 
 start() {
-        ETHMODE=`fw_printenv ethmode | cut -d "=" -f2`
-        if [ -z $ETHMODE ] ;
+	ETHMODE=`dd bs=1 skip=1000 count=1 if=/dev/mtdblock1 2>/dev/null`
+	if [ $ETHMODE != '1' -a $ETHMODE != '2' -a $ETHMODE != '3' -a $ETHMODE != '4' ] ;
         then
         echo "use default 1Port LAN" > /dev/console
+	echo 3 | dd bs=1 seek=1000 count=1 of=/dev/mtdblock1 2>/dev/null
         ethmode l
         else
+        echo "ETHMODE" > /dev/console
         echo $ETHMODE > /dev/console
         ethmode $ETHMODE
         fi
