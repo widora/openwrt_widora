@@ -1476,7 +1476,7 @@ config BUSYBOX_DEFAULT_LSPCI
 	default n
 config BUSYBOX_DEFAULT_LSUSB
 	bool
-	default n
+	default y
 config BUSYBOX_DEFAULT_MKSWAP
 	bool
 	default y

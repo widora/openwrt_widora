@@ -42,7 +42,7 @@
 			interrupt-parent = <&intc>;
 			interrupts = <24>;
 				
-			status = "disabled"
+			status = "disabled";
 		};
 
 		intc: intc@200 {
