@@ -58,12 +58,16 @@ Target System(Ralink RT288x/RT3xxx) --->
 
 Subtarget(MT7688 based board) --->
 
-Target Profile(Widora) --->
+Target Profile(WIDORA16128) --->
 
 ## note
-Widora:16MB FLASH + 128MB RAM
+WIDORA16128:16MB FLASH + 128MB RAM
 
-Widora32M:32MB FLASH + 128MB RAM
+WIDORA32128:32MB FLASH + 128MB RAM
+
+WIDORA1664:16MB FLASH + 64MB RAM
+
+WIDORA3264:32MB FLASH + 64MB RAM
 
 # 5.make
 $ make -j4
