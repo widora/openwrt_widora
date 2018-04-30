@@ -427,11 +427,11 @@ ramips_board_detect() {
 	*"Mediatek MT7628AN evaluation board")
 		name="mt7628"
 		;;
-	*"Widora-NEO")
-		name="widora"
+	*"WIDORA-NEO")
+		name="widora-neo"
 		;;
-	*"Widora32M")
-		name="widora32m"
+	*"WIDORA-BIT5")
+		name="widora-bit5"
 		;;
 	*"MediaTek LinkIt Smart 7688")
 		linkit="$(dd bs=1 skip=1024 count=12 if=/dev/mtd2 2> /dev/null)"

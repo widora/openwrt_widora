@@ -63,8 +63,8 @@ platform_check_image() {
 	ip2202 | \
 	linkits7688 | \
 	linkits7688d | \
-	widora | \
-	widora32m | \
+	widora-neo | \
+	widora-bit5 | \
 	m2m | \
 	m3 | \
 	m4 | \

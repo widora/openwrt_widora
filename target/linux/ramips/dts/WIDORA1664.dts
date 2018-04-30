@@ -3,8 +3,8 @@
 /include/ "mt7628an.dtsi"
 
 / {
-	compatible = "mediatek,widora32m", "mediatek,mt7628an-soc";
-	model = "Widora32M";
+	compatible = "widora", "mediatek,mt7628an-soc";
+	model = "WIDORA-BIT5";
 
 	chosen {
 		bootargs = "console=ttyS0,115200";
@@ -12,7 +12,7 @@
 
 	memory@0 {
 		device_type = "memory";
-		reg = <0x0 0x8000000>;
+		reg = <0x0 0x4000000>;
 	};
 
 	pinctrl {
@@ -74,9 +74,9 @@
 			m25p80@0 {
 				#address-cells = <1>;
 				#size-cells = <1>;
-				compatible = "w25q256";
+				compatible = "w25q128";
 				reg = <0 0>;
-				linux,modalias = "m25p80", "w25q256";
+				linux,modalias = "m25p80", "w25q128";
 				spi-max-frequency = <40000000>;
 				m25p,chunked-io = <31>;
 
@@ -98,7 +98,7 @@
 
 				partition@50000 {
 					label = "firmware";
-					reg = <0x50000 0x1fb0000>;
+					reg = <0x50000 0x0fb0000>;
 				};
 			};
 
@@ -147,4 +147,5 @@
                         linux,code = <0x211>;
                 };
         };
+
 };

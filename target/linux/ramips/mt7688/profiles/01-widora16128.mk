@@ -5,8 +5,8 @@
 # See /LICENSE for more information.
 #
 
-define Profile/Widora
-	NAME:=Widora
+define Profile/WIDORA16128
+	NAME:=WIDORA16128
 	PACKAGES:=\
 		kmod-usb-core kmod-usb2 kmod-usb-ohci \
 		kmod-ledtrig-netdev \
@@ -24,7 +24,7 @@ define Profile/Widora
         	maccalc shairport_mmap reg ser2net
 endef
 
-define Profile/Widora/Description
-	widora 16M flash/128M ram base packages.
+define Profile/WIDORA16128/Description
+	widora 16MB flash/128MB ram base packages.
 endef
-$(eval $(call Profile,Widora))
+$(eval $(call Profile,WIDORA16128))
