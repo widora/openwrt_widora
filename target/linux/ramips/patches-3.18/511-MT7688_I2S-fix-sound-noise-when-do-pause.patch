@@ -1,0 +1,28 @@
+From 523e80835ddd4072e1ec96113f710a825ee66042 Mon Sep 17 00:00:00 2001
+From: Pillar Zuo <zuobaozhu@gmail.com>
+Date: Tue, 25 Oct 2016 02:22:25 -0700
+Subject: [PATCH] MT7688_I2S: fix sound noise when do pause
+
+Signed-off-by: Pillar Zuo <zuobaozhu@gmail.com>
+---
+ sound/soc/mtk/i2s_ctrl.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/sound/soc/mtk/i2s_ctrl.c b/sound/soc/mtk/i2s_ctrl.c
+index eed7306..14d0829 100644
+--- a/sound/soc/mtk/i2s_ctrl.c
++++ b/sound/soc/mtk/i2s_ctrl.c
+@@ -2311,8 +2311,8 @@ void i2s_dma_tx_handler(u32 dma_ch)
+ 		{
+ 			if(!pi2s_config->bTrigger[STREAM_PLAYBACK]){
+ 				MSG("trigger stop: rIdx:%d widx:%d\n", pi2s_config->tx_r_idx,pi2s_config->tx_w_idx);
+-                //i2s_dma_tx_transf_zero(pi2s_config, dma_ch);
+-                i2s_dma_tx_transf_data(pi2s_config, dma_ch);
++                i2s_dma_tx_transf_zero(pi2s_config, dma_ch);
++                //i2s_dma_tx_transf_data(pi2s_config, dma_ch);
+                 if(pi2s_config->bPreTrigger[STREAM_PLAYBACK]){
+                     /* mtk04880 commented:
+                      * for corner case, there are cases which ALSA Trigger stop before disabling DMA.
+-- 
+1.9.1
+

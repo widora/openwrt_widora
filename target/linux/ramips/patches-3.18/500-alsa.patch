@@ -4466,7 +4466,7 @@
 +#endif
 +
 +//#define CONFIG_I2S_MS_CTRL		
-+//#define CONFIG_I2S_MS_MODE
++#define CONFIG_I2S_MS_MODE
 +//#define memory_test
 +
 +#if defined (CONFIG_ARCH_MT7623)
