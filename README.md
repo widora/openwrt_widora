@@ -2,10 +2,10 @@
 ##### Widora发布的MT7688 WI-FI驱动因版权限制只能运行在NEO、BIT模组、集成BIT模组的产品上，在其他7688上运行属于侵权行为，侵权必究。
 
 ### Hello everybody
-##### [Twitter:widoraIO](https://twitter.com/widoraIO/)
+##### [Twitter:wi_IoE](https://twitter.com/wi_IoE/)
 ##### TELEGRAM: https://t.me/widora
 ##### QQ Group: 299381903
-##### https://widora.io   http://widora.cn
+##### http://wiioe.com
 
 ### ethmode command
 | command |   status   |  
@@ -73,4 +73,4 @@ WIDORA3264:32MB FLASH + 64MB RAM
 $ make -j4
 # 6.image
 the binary image name like this in bin/ramips/:
-openwrt-ramips-mt7688-Widora-squashfs-sysupgrade.bin
+openwrt-ramips-mt7688-Widoraxxxxx-squashfs-sysupgrade.bin
