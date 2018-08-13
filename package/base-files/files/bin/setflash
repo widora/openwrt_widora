@@ -1,0 +1,189 @@
+#!/bin/sh
+#Careful with CRLF's
+SPI_TRANS_REG=0x10000B00
+SPI_OP_ADDR=0x10000B04
+SPI_DIDO_0=0x10000B08
+GPIO1_MODE=0x10000060
+GPIO_DAT_0=0x10000620
+GPIO_CTRL_0=0x10000600
+gpio1_mode_val=0
+gpio_dat_0_val=0
+gpio_ctrl_0_val=0
+gpio6_val=0
+gpio6_ctrl_val=0
+sr3=0
+first_sr3=0
+
+
+read_gpio6_val(){
+#set the Mode to GPIO
+gpio1_mode_val=$(devmem $GPIO1_MODE)
+res=$(($gpio1_mode_val & 0xFFFFFFCF))
+res=$(($res + 0x10))
+devmem $GPIO1_MODE 32 $res
+
+#read the Control Bit State 1=output 0=input
+gpio_ctrl_0_val=$(devmem $GPIO_CTRL_0)
+gpio6_ctrl_val=$(($gpio_ctrl_0_val & 0x40))
+gpio6_ctrl_val=$(($gpio6_ctrl_val >> 6))
+
+#set to input 
+res=$(($gpio_ctrl_0_val & 0xFFFFFFBF))
+devmem $GPIO_CTRL_0 32 $res
+
+#Read The Pin State
+gpio_dat_0_val=$(devmem $GPIO_DAT_0)
+gpio6_val=$(($gpio_dat_0_val & 0x40))
+gpio6_val=$(($gpio6_val >> 6))
+
+#restore the direction
+devmem $GPIO_CTRL_0 32 $gpio_ctrl_0_val
+#Restore the Mode
+devmem $GPIO1_MODE 32 $gpio1_mode_val
+
+#echo gpio6_ctrl_val $gpio6_ctrl_val
+if [ $gpio6_val == 1 ];then
+	echo "CS1 Pin State is HI"
+else
+	echo "CS1 Pin State is LOW"
+fi
+#echo gpio6_ctrl_val $gpio6_ctrl_val
+#echo gpio6_val $gpio6_val
+
+}
+
+read_gpio1_mode(){
+gpio_dat_0_val=$(devmem $GPIO_DAT_0)
+gpio6_val=$(($gpio_dat_0_val & 0x40))
+gpio6_val=$(($gpio6_val >> 6))
+
+
+
+#echo "GPIO_DAT_0 Value is "$gpio_dat_0_val
+gpio1_mode_val=$(devmem $GPIO1_MODE)
+
+#echo "GPIO1_MODE Value is "$gpio1_mode_val
+res=$(($gpio1_mode_val & 0x30))
+res=$(($res >> 4))
+
+if [ $res == 0 ];then
+	echo "SPI_CS1_MODE is SPI-CS1"
+	txt="SPI-CS1"
+fi
+if [ $res == 1 ];then
+	echo "SPI_CS1_MODE is GPIO6"
+	txt="GPIO6"
+fi
+if [ $res == 2 ];then
+	echo "SPI_CS1_MODE is REFCLK"
+	txt="REFCLK"
+fi
+if [ $res == 3 ];then
+	"SPI_CS1_MODE is an Unknown State"
+	return
+fi
+
+}
+
+set_pwr_up_mode(){
+read_sr3
+m_sr3=$sr3
+#clear the bit
+m_sr3=$(($m_sr3 & 253))
+if [ $1 == 1 ];then
+	m_sr3=$(($m_sr3 + 2))
+	echo "setting mode to 4-Byte"
+else
+	echo "setting mode to 3-Byte"
+fi
+#shift databyte to bits 24 .. 31
+opaddr=$(( $m_sr3 << 24 ))
+#add the write SR3 opcode
+opaddr=$(( $opaddr + 0x11 ))
+
+#set the opcode write enable
+devmem $SPI_OP_ADDR 32 0x6
+#Start the trans action to write one byte
+devmem $SPI_TRANS_REG 32 0x160101
+devmem $SPI_TRANS_REG 32 0
+
+#set the opcode/addr to our new SR3 Value
+devmem $SPI_OP_ADDR 32 $opaddr
+#Start the trans action to write 2 bytes
+devmem $SPI_TRANS_REG 32 0x160102
+devmem $SPI_TRANS_REG 32 0
+
+}
+
+report_state(){
+sr3=0xFF
+read_sr3
+cur_mode=$(($sr3 & 1))
+pu_mode=$(($sr3 & 2))
+read_gpio6_val
+if [ $cur_mode == 1 ];then
+	echo "Flash is Currently Operationg in 4-Byte mode"
+else 
+	echo "Flash is Currently Operationg in 3-Byte mode"
+fi
+if [ $pu_mode == 2 ];then
+	echo "Flash is in 4-Byte mode at pwron"
+	
+	if [ $gpio6_val == 1 ];then
+		if [ $cur_mode == 1 ];then
+			echo "No Changes Are Required "
+		else
+			echo SR3 Value is $sr3
+			echo "Remove Power From Device or set 4-Byte Address Mode with 0xB7 Instruction "
+		fi
+	else
+		echo SR3 Value is $sr3
+		echo "MTK7688 is expecting Flash to be in 3-Byte Mode At Boot But It Isn't "
+		echo "run 'sh setflash 0' to change to 3-byte mode or Pull CS1 Hi with 1K5 Resistor"
+	fi
+else
+	echo "Flash is in 3-Byte mode at pwron"
+	if [ $gpio6_val == 0 ];then
+	
+		if [ $cur_mode == 0 ];then
+			echo "No Changes Are Required "
+		else
+			echo SR3 Value is $sr3
+			echo "Remove Power From Device or set 3-Byte Address Mode with 0xE9 Instruction "
+		fi
+	else
+		echo SR3 Value is $sr3
+		echo "MTK7688 is expecting Flash to be in 4-Byte Mode At Boot But It Isn't "
+		echo "run 'sh setflash 1' to change to 4-byte mode or Release Pullup On CS1"
+	fi
+fi
+}
+
+read_sr3(){
+#Clear The Data Register
+devmem $SPI_DIDO_0 32 0x0
+#set the opcode to read SR3
+devmem $SPI_OP_ADDR 32 0x15
+#Start the trans action to write and read one byte
+devmem $SPI_TRANS_REG 32 0x160111
+devmem $SPI_TRANS_REG 32 0
+#read the value
+sr3=$(devmem $SPI_DIDO_0)
+}
+
+
+# Set The SPI Select to CS0 And ensure more_buf_mode is set to 0
+# bits 24..31 are the first SPI databyte transmitted in this mode
+devmem 0x10000B28 32 0x38880
+
+if [ "$#" -ne 1 ]; then
+  read_sr3
+  first_sr3=$sr3
+  report_state
+#  echo "execute setflash 1 to change to 4-byte mode"
+#  echo "execute setflash 0 to change to 3-byte mode"
+  exit 1
+fi
+set_pwr_up_mode $1
+report_state
+
