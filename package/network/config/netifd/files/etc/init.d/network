@@ -13,8 +13,6 @@ init_switch() {
 }
 
 start_service() {
-	init_switch
-
 	procd_open_instance
 	procd_set_param command /sbin/netifd
 	procd_set_param respawn
@@ -27,9 +25,10 @@ start_service() {
 }
 
 reload_service() {
-	init_switch
 	ubus call network reload
 	/sbin/wifi reload_legacy
+	sleep 3
+	init_switch
 }
 
 stop() {
@@ -144,6 +143,8 @@ restart() {
 	trap '' TERM
 	stop "$@"
 	start "$@"
+	sleep 3
+	init_switch
 }
 
 shutdown() {
