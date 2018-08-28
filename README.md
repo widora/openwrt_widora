@@ -2,10 +2,9 @@
 ##### Widora发布的MT7688 WI-FI驱动因版权限制只能运行在NEO、BIT模组、集成BIT模组的产品上，在其他7688上运行属于侵权行为，侵权必究。
 
 ### Hello everybody
-##### [Twitter:wi_IoE](https://twitter.com/wi_IoE/)
+##### [Twitter](https://twitter.com/widora_io/)
 ##### TELEGRAM: https://t.me/widora
 ##### QQ Group: 299381903
-##### http://wiioe.com
 
 ### ethmode command
 | command |   status   |  
