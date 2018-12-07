@@ -2,7 +2,7 @@
 ##### Widora发布的MT7688 WI-FI驱动因版权限制只能运行在NEO、BIT模组、集成BIT模组的产品上，在其他7688上运行属于侵权行为，侵权必究。
 
 ### Hello everybody
-##### [Twitter](https://twitter.com/widora_io/)
+##### [Twitter](https://twitter.com/widoraIoT/)
 ##### TELEGRAM: https://t.me/widora
 ##### QQ Group: 299381903
 
@@ -34,7 +34,7 @@ no is not connected
 ## Ubuntu14.04
 $ sudo apt-get update
 
-$ sudo apt-get install git g++ make libncurses5-dev subversion libssl-dev gawk libxml-parser-perl unzip wget python xz-utils vim
+$ sudo apt-get install git g++ make libncurses5-dev subversion libssl-dev gawk libxml-parser-perl unzip wget python xz-utils vim zlibc zlib1g zlib1g-dev openjdk-8-jdk build-essential ccache gettext xsltproc 
 ## Macos
 note: install brew and Xcode command line tools
 
@@ -73,3 +73,13 @@ $ make -j4
 # 6.image
 the binary image name like this in bin/ramips/:
 openwrt-ramips-mt7688-Widoraxxxxx-squashfs-sysupgrade.bin
+
+### For?
+![](http://cn.widora.io/_media/bit3new.jpg)
+
+![](http://cn.widora.io/_media/zh/bit4only.jpg)
+
+![](http://cn.widora.io/_media/bit5only.jpg)
+
+## More?
+https://widora.io
