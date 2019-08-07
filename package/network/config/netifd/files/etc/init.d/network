@@ -143,6 +143,7 @@ restart() {
 	sleep 1
 	trap '' TERM
 	stop "$@"
+	sleep 2
 	start "$@"
 }
 
