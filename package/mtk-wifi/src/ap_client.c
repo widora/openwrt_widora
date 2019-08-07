@@ -161,7 +161,7 @@ out:
 	free(s);
 }
 
-static struct survey_table* wifi_find_ap(const char *name, const char *bssid)
+static struct survey_table* wifi_find_ap(const char *name, const char *bssid, const char *hidden)
 {
 	int i,j=1;
 //1: find mac addr
@@ -176,6 +176,8 @@ static struct survey_table* wifi_find_ap(const char *name, const char *bssid)
 		if (!strcmp(name, (char*)st[i].ssid))
 			return &st[i];
 //3: find hidden ssid
+	if ((*hidden == '1') && strlen(hidden)) 
+	{
 	int total_hide_num=0; //update when scan complete.
 	for (i = 0; i < survey_count; i++)
 	{
@@ -198,6 +200,7 @@ static struct survey_table* wifi_find_ap(const char *name, const char *bssid)
 						return &st[i];
 					}
 				}
+	}
 	}
 	return 0;
 }
@@ -265,7 +268,7 @@ int check_assoc(char *ifname)
 	return 0;
 }
 
-static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, char *bssid)
+static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, char *bssid, char *hidden)
 {
 	while (1) {
 		print_log("check:");
@@ -275,7 +278,7 @@ static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, cha
 			//print_log("%s is not associated\n", staname);
 			syslog(LOG_INFO, "Scanning for networks...\n");
 			wifi_site_survey(ifname, 0);
-			c = wifi_find_ap(essid, bssid);
+			c = wifi_find_ap(essid, bssid, hidden);
 			if (c) {
 //				syslog(LOG_INFO, "Found network, trying to associate (essid: %s, bssid: %s, channel: %s, enc: %s, crypto: %s)\n",
 //					essid, c->bssid, c->channel, c->security, c->crypto);
@@ -324,7 +327,7 @@ int main(int argc, char **argv)
 
 //	led_set_trigger(1);
 //	print_log("loop:%s,%s,%s,%s,%s,%s,%s\n",argv[1], argv[2], argv[3], argv[4], argv[5], argv[6],argv[7]);
-	assoc_loop(argv[1], argv[2], argv[3], argv[4], argv[5]);
+	assoc_loop(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
 
 	return 0;
 }

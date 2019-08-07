@@ -128,16 +128,16 @@ ralink_setup_ap(){
 ralink_setup_sta(){
 	local name="$1"
 	json_select config
-	json_get_vars mode apname ifname ssid bssid encryption key key1 key2 key3 key4 wps_pushbutton
+	json_get_vars mode apname ifname ssid bssid encryption key key1 key2 key3 key4 wps_pushbutton hidden
 
 	sta_mode="$(uci get wireless.sta.disabled)"
 	[ "${sta_mode}" == "1" ] && return
 
 	json_select ..
 	killall ap_client
-	/sbin/ap_client "ra0" "$ifname" "${ssid}" "${key}" "${bssid}"
+	/sbin/ap_client "ra0" "$ifname" "${ssid}" "${key}" "${bssid}" "${hidden}"
 	sleep 1
-	wireless_add_process "$(cat /tmp/apcli-${ifname}.pid)" /sbin/ap_client ra0 "$ifname" "${ssid}" "${key}" "${bssid}"
+	wireless_add_process "$(cat /tmp/apcli-${ifname}.pid)" /sbin/ap_client ra0 "$ifname" "${ssid}" "${key}" "${bssid}"  "${hidden}"
 
 	wireless_add_vif "$name" "$ifname"
 }

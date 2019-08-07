@@ -40,6 +40,7 @@ config wifi-iface sta
 	option ifname   $sta
 	option ssid	UplinkAp
 	option key	SecretKey
+	option hidden	0
 EOF
 }
 
