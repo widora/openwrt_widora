@@ -286,119 +286,99 @@ int check_assoc(char *ifname)
 	return 0;
 }
 
-/*static void assoc_loop_old(char *ifname, char *staname, char *essid, char *pass, char *bssid)
-{
-	while (1) {
-		print_log("check:");
-		if (!check_assoc(staname)) {
-			struct survey_table *c;
-			print_log("disconnect\n");
-			//print_log("%s is not associated\n", staname);
-			syslog(LOG_INFO, "Scanning for networks...\n");
-			wifi_site_survey(ifname, 0);
-			c = wifi_find_ap(essid, bssid);
-			if (c) {
-//				syslog(LOG_INFO, "Found network, trying to associate (essid: %s, bssid: %s, channel: %s, enc: %s, crypto: %s)\n",
-//					essid, c->bssid, c->channel, c->security, c->crypto);
-				wifi_repeater_start(ifname, staname, c->channel, essid, bssid, pass, c->security, c->crypto);
-			} else {
-				syslog(LOG_INFO, "No signal found to connect to\n");
-				}
-			} else {
-			print_log("connect\n");
-			}
-		sleep(8);
-		}
-}*/
-
 static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, char *bssid, char *hidden)
 {
 	unsigned char cur_state,next_state=0;
 	unsigned char fail=0;
 	unsigned char i=1;
-	unsigned char x=0;
 	unsigned char fail5=0;
 	unsigned char fail6=0;
-	struct survey_table *c;
+	unsigned char timeout=0;
+	struct survey_table *c=0;
 	while (1) {
 		sleep(1);
 		switch (cur_state = next_state)
 		{
-			case 0:			//常规状态
+			case 0:			//check
 			if(check_assoc(staname)){	//connected
-			print_log("connect\n");
+			print_log("connected\n");
+			sleep(8);
 			}else{
 			print_log("disconnect\n");
 			next_state = 1;
 			}
+			i=1;
+			timeout=0;
 			break;
 
-			case 1:			//find and try
+			case 1:			//scan
 			print_log("scanning:");
 			wifi_site_survey(ifname, 0); //run 5S
 			c = wifi_find_ap(essid, bssid,hidden);
 			if(c){	
 				print_log("find ap...\n");
-				i=1;
-				wifi_repeater_start(ifname, staname, c->channel, essid, bssid, pass, c->security, c->crypto);
-				sleep(8);
 				next_state=2;
 			}else{
-				print_log("no ap...\n");
-				//no ap,wait for a long time
+				print_log("no ap...\n"); //no ap,wait for a long time
 				sleep(10*i++);
 				if(i>12)
 					i=12;
 				next_state = 1;
 			}
-			x=0;
-			fail5=0;
-			fail6=0;
 			break;
 
-			case 2:			//reason
+			case 2:			//try
+			wifi_repeater_start(ifname, staname, c->channel, essid, bssid, pass, c->security, c->crypto);
+			sleep(6);
+			next_state = 3;
+			i=1;
+			fail5=0;
+			fail6=0;
+
+			break;
+
+			case 3:			//reason
 			fail = get_failreason()&0x0f;
 			print_log("%x",fail);
-			if(fail == 0){
+			if(fail == 0){	//0000000
 				fail5=0;
 				fail6=0;
-				if(x++ > 8)
-				next_state = 0;	//connected OK
+				if(i++ > 8)
+				next_state = 0;	//connected
 			}else{
 				if(	fail == 5){
+					i=1;
 					fail6=0;
 					fail5++;
-					if(fail5 > 30){
+					if(fail5 > 20){
 						fail5 = 0;
-						next_state = 3;
+						print_log("connect timeout!!!!!\n");
+						next_state = 2;	//try again
+						if(timeout++>6)
+							next_state = 4; //fail
 						}
+						
 				}
 				if(	fail == 6){
+					i=1;
 					fail5 =0;
 					fail6++;
-					if(fail6 > 10){
+					if(fail6 > 10){			//connect error
 						fail6 = 0;
-						next_state = 4;
+						print_log("connect error!!!!!\n");
+						next_state = 4; //fail
 						}
 				}
 			}
 			break;			
-			
-			case 3:			//超时，异常
-			print_log("connect timeout!!!!!\n");
-			sleep(30);
-			next_state = 0;	//try again
-			break;
 
-
-			case 4:			//密码错误，异常
-			print_log("connect error!!!!!\n");
-			sleep(1);	
+			case 4:			//error!
+			timeout=0;		
+			print_log("failure!!!!!\n");
 			iwpriv(staname, "ApCliEnable", "0");	//停掉sta	
-			sleep(100);
-			next_state = 0; //try again
+			sleep(600);
+			next_state = 0;
 			break;
-
 			default:
 			break;
 		}
