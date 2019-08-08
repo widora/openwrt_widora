@@ -72,8 +72,9 @@ int print_log(const char *fmt, ...)
 	return 0;
 }
 #endif
-
+#define SIOCIWFIRSTPRIV      0x8BE0
 #define RTPRIV_IOCTL_SET (SIOCIWFIRSTPRIV + 0x02)
+#define RTPRIV_IOCTL_GET_STATE_DATA (SIOCIWFIRSTPRIV + 0x1E)
 static void iwpriv(const char *name, const char *key, const char *val)
 {
 	int socket_id;
@@ -88,6 +89,23 @@ static void iwpriv(const char *name, const char *key, const char *val)
 	wrq.u.data.flags = 0;
 	ioctl(socket_id, RTPRIV_IOCTL_SET, &wrq);
 	close(socket_id);
+}
+unsigned char get_failreason(void)
+{
+//	int ret;
+	int socket_id;
+	struct iwreq wrq;
+	char data[10];
+	socket_id = socket(AF_INET, SOCK_DGRAM, 0);
+	memset(data, 0x00, 10);
+	strcpy(wrq.ifr_name, "apcli0");
+	strcpy(data,"p");
+	wrq.u.data.length = strlen(data);
+	wrq.u.data.pointer = data;
+	wrq.u.data.flags = 0;
+	ioctl(socket_id, RTPRIV_IOCTL_GET_STATE_DATA, &wrq);
+	close(socket_id);
+	return (unsigned char)data[0];
 }
 
 static void next_field(char **line, char *output, int n) {
@@ -176,7 +194,7 @@ static struct survey_table* wifi_find_ap(const char *name, const char *bssid, co
 		if (!strcmp(name, (char*)st[i].ssid))
 			return &st[i];
 //3: find hidden ssid
-	if ((*hidden == '1') && strlen(hidden)) 
+	if ((*hidden == '1') && strlen(hidden))
 	{
 	int total_hide_num=0; //update when scan complete.
 	for (i = 0; i < survey_count; i++)
@@ -268,7 +286,7 @@ int check_assoc(char *ifname)
 	return 0;
 }
 
-static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, char *bssid, char *hidden)
+/*static void assoc_loop_old(char *ifname, char *staname, char *essid, char *pass, char *bssid)
 {
 	while (1) {
 		print_log("check:");
@@ -278,7 +296,7 @@ static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, cha
 			//print_log("%s is not associated\n", staname);
 			syslog(LOG_INFO, "Scanning for networks...\n");
 			wifi_site_survey(ifname, 0);
-			c = wifi_find_ap(essid, bssid, hidden);
+			c = wifi_find_ap(essid, bssid);
 			if (c) {
 //				syslog(LOG_INFO, "Found network, trying to associate (essid: %s, bssid: %s, channel: %s, enc: %s, crypto: %s)\n",
 //					essid, c->bssid, c->channel, c->security, c->crypto);
@@ -291,6 +309,102 @@ static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, cha
 			}
 		sleep(8);
 		}
+}*/
+
+static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, char *bssid, char *hidden)
+{
+	unsigned char cur_state,next_state=0;
+	unsigned char fail=0;
+	unsigned char i=1;
+	unsigned char x=0;
+	unsigned char fail5=0;
+	unsigned char fail6=0;
+	struct survey_table *c;
+	while (1) {
+		sleep(1);
+		switch (cur_state = next_state)
+		{
+			case 0:			//常规状态
+			if(check_assoc(staname)){	//connected
+			print_log("connect\n");
+			}else{
+			print_log("disconnect\n");
+			next_state = 1;
+			}
+			break;
+
+			case 1:			//find and try
+			print_log("scanning:");
+			wifi_site_survey(ifname, 0); //run 5S
+			c = wifi_find_ap(essid, bssid,hidden);
+			if(c){	
+				print_log("find ap...\n");
+				i=1;
+				wifi_repeater_start(ifname, staname, c->channel, essid, bssid, pass, c->security, c->crypto);
+				sleep(8);
+				next_state=2;
+			}else{
+				print_log("no ap...\n");
+				//no ap,wait for a long time
+				sleep(10*i++);
+				if(i>12)
+					i=12;
+				next_state = 1;
+			}
+			x=0;
+			fail5=0;
+			fail6=0;
+			break;
+
+			case 2:			//reason
+			fail = get_failreason()&0x0f;
+			print_log("%x",fail);
+			if(fail == 0){
+				fail5=0;
+				fail6=0;
+				if(x++ > 8)
+				next_state = 0;	//connected OK
+			}else{
+				if(	fail == 5){
+					fail6=0;
+					fail5++;
+					if(fail5 > 30){
+						fail5 = 0;
+						next_state = 3;
+						}
+				}
+				if(	fail == 6){
+					fail5 =0;
+					fail6++;
+					if(fail6 > 10){
+						fail6 = 0;
+						next_state = 4;
+						}
+				}
+			}
+			break;			
+			
+			case 3:			//超时，异常
+			print_log("connect timeout!!!!!\n");
+			sleep(30);
+			next_state = 0;	//try again
+			break;
+
+
+			case 4:			//密码错误，异常
+			print_log("connect error!!!!!\n");
+			sleep(1);	
+			iwpriv(staname, "ApCliEnable", "0");	//停掉sta	
+			sleep(100);
+			next_state = 0; //try again
+			break;
+
+			default:
+			break;
+		}
+	}
+
+
 }
 
 
@@ -310,6 +424,11 @@ int main(int argc, char **argv)
 		}
 		return 0;
 	}
+	if (argc ==2)
+	{
+		printf("%x",get_failreason());
+		return 0;
+	}
 	if (argc < 5)
 		return -1;
 
@@ -327,7 +446,7 @@ int main(int argc, char **argv)
 
 //	led_set_trigger(1);
 //	print_log("loop:%s,%s,%s,%s,%s,%s,%s\n",argv[1], argv[2], argv[3], argv[4], argv[5], argv[6],argv[7]);
-	assoc_loop(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
+	assoc_loop(argv[1], argv[2], argv[3], argv[4], argv[5] ,argv[6]);
 
 	return 0;
 }
