@@ -337,7 +337,7 @@ static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, cha
 
 			break;
 
-			case 3:			//reason
+			case 3:			//get reason
 			fail = get_failreason()&0x0f;
 			print_log("%x",fail);
 			if(fail == 0){	//0000000
@@ -354,7 +354,7 @@ static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, cha
 						fail5 = 0;
 						print_log("connect timeout!!!!!\n");
 						next_state = 2;	//try again
-						if(timeout++>6)
+						if(timeout++>4)
 							next_state = 4; //fail
 						}
 						
@@ -423,9 +423,6 @@ int main(int argc, char **argv)
 	setbuf(stdout, NULL);
 	openlog("ap_client", 0, 0);
 
-
-//	led_set_trigger(1);
-//	print_log("loop:%s,%s,%s,%s,%s,%s,%s\n",argv[1], argv[2], argv[3], argv[4], argv[5], argv[6],argv[7]);
 	assoc_loop(argv[1], argv[2], argv[3], argv[4], argv[5] ,argv[6]);
 
 	return 0;
