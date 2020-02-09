@@ -1,0 +1,49 @@
+Index: linux-3.18.29/drivers/net/ethernet/ralink/esw_rt3052.c
+===================================================================
+--- linux-3.18.29.orig/drivers/net/ethernet/ralink/esw_rt3052.c
++++ linux-3.18.29/drivers/net/ethernet/ralink/esw_rt3052.c
+@@ -444,8 +444,36 @@ static void esw_set_gsc(struct rt305x_es
+ 
+ static int esw_apply_config(struct switch_dev *dev);
+ 
++struct work_struct kill_sig_wq;
++
++void kill_sig_workq(struct work_struct *work)
++{
++	dev_info(NULL, "kill_sig_workq\n");
++	struct file *fp;
++	char pid[8];
++	struct task_struct *p = NULL;
++	//read udhcpc pid from file, and send signal USR2,USR1 to get a new IP
++	fp = filp_open("/var/run/udhcpc-eth0.2.pid", O_RDONLY, 0);
++	if (IS_ERR(fp)){
++ 		return;
++	}
++
++	if (fp->f_op && fp->f_op->read) {
++	    if (fp->f_op->read(fp, pid, 8, &fp->f_pos) > 0) {
++		p = pid_task(find_get_pid(simple_strtoul(pid, NULL, 10)),  PIDTYPE_PID);
++		if (NULL != p) {
++		    send_sig(SIGUSR2, p, 0);
++		    send_sig(SIGUSR1, p, 0);
++		}
++	    }
++	}
++	filp_close(fp, NULL);
++
++}
++
+ static void esw_hw_init(struct rt305x_esw *esw)
+ {
++	INIT_WORK(&kill_sig_wq, kill_sig_workq);
+ 	int i;
+ 	u8 port_disable = 0;
+ 	u8 port_map = RT305X_ESW_PMAP_LLLLLL;
+@@ -734,6 +762,7 @@ static irqreturn_t esw_interrupt(int irq
+ 		link >>= RT305X_ESW_POA_LINK_SHIFT;
+ 		link &= RT305X_ESW_POA_LINK_MASK;
+ 		dev_info(esw->dev, "link changed 0x%02X\n", link);
++		schedule_work(&kill_sig_wq);
+ 	}
+ 	esw_w32(esw, status, RT305X_ESW_REG_ISR);
+ 
