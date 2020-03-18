@@ -1,7 +1,7 @@
 ##### Widora发布的MT7688 WI-FI商用驱动因版权限制只能运行在NEO、BIT模组、集成BIT模组的产品上，在其他7688上的商用运行属于侵权行为，侵权必究。
 
 ### Hello everybody
-##### [Twitter](https://twitter.com/widoraIoT/)
+##### [Twitter](https://twitter.com/widoraIo/)
 ##### TELEGRAM: https://t.me/widora
 ##### QQ Group: 299381903
 
