@@ -11,17 +11,15 @@ define Profile/WIDORA32128
 		kmod-usb-core kmod-usb2 kmod-usb-ohci \
 		kmod-ledtrig-netdev \
   		mountd \
-        	mjpg-streamer \
 		uhttpd rpcd rpcd-mod-iwinfo \
 		rpcd-mod-rpcsys cgi-io spi-tools \
-		kmod-fs-vfat kmod-fs-exfat kmod-fs-ext4 block-mount e2fsprogs \
+		kmod-sdhci-mt7620 kmod-fs-vfat kmod-fs-exfat kmod-fs-ext4 block-mount e2fsprogs \
 		kmod-i2c-core kmod-i2c-mt7621 \
 		kmod-nls-base kmod-nls-cp437 kmod-nls-iso8859-1 kmod-nls-utf8 \
-		kmod-sdhci-mt7620 kmod-usb-storage \
-		kmod-video-core kmod-video-uvc \
-		kmod-sound-core kmod-sound-mtk madplay-alsa alsa-utils \
+		kmod-video-core kmod-video-uvc mjpg-streamer \
+		kmod-usb-storage kmod-usb-net kmod-usb-net-rndis kmod-usb-serial kmod-usb-serial-wwan \
 		mtk-wifi airkiss webui ated luci\
-        	maccalc shairport_mmap reg ser2net
+        maccalc reg ser2net
 endef
 
 define Profile/WIDORA32128/Description
