@@ -346,7 +346,7 @@ static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, cha
 				if(i++ > 8)
 				next_state = 0;	//connected
 			}else{
-				if(	fail == 5){
+		/*		if(	fail == 5){
 					i=1;
 					fail6=0;
 					fail5++;
@@ -358,7 +358,7 @@ static void assoc_loop(char *ifname, char *staname, char *essid, char *pass, cha
 							next_state = 4; //fail
 						}
 						
-				}
+				}  */
 				if(	fail == 6){
 					i=1;
 					fail5 =0;
