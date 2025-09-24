@@ -75,6 +75,7 @@ define Package/mtk-wifi/install
 	$(CP) $(PKG_BUILD_DIR)/ap_client $(1)/sbin/
 	$(INSTALL_DIR) $(1)/lib/modules/$(LINUX_VERSION)/
 	$(CP) ./wifi_ko/mt_wifi.ko $(1)/lib/modules/$(LINUX_VERSION)/mt_wifi.ko
+	$(CP) ./eth_ko/raeth.ko $(1)/lib/modules/$(LINUX_VERSION)/raeth.ko
 	$(CP) ./files/* $(1)/
 endef
 

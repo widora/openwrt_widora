@@ -23,7 +23,7 @@ Signed-off-by: John Crispin <blogic@openwrt.org>
  source "drivers/net/ethernet/pasemi/Kconfig"
  source "drivers/net/ethernet/qlogic/Kconfig"
  source "drivers/net/ethernet/qualcomm/Kconfig"
-+source "drivers/net/ethernet/ralink/Kconfig"
++# source "drivers/net/ethernet/ralink/Kconfig"
  source "drivers/net/ethernet/realtek/Kconfig"
  source "drivers/net/ethernet/renesas/Kconfig"
  source "drivers/net/ethernet/rdc/Kconfig"
@@ -33,7 +33,7 @@ Signed-off-by: John Crispin <blogic@openwrt.org>
  obj-$(CONFIG_NET_VENDOR_PASEMI) += pasemi/
  obj-$(CONFIG_NET_VENDOR_QLOGIC) += qlogic/
  obj-$(CONFIG_NET_VENDOR_QUALCOMM) += qualcomm/
-+obj-$(CONFIG_NET_RALINK) += ralink/
++# obj-$(CONFIG_NET_RALINK) += ralink/
  obj-$(CONFIG_NET_VENDOR_REALTEK) += realtek/
  obj-$(CONFIG_SH_ETH) += renesas/
  obj-$(CONFIG_NET_VENDOR_RDC) += rdc/
